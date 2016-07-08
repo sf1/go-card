@@ -22,17 +22,25 @@ func printHex(buffer []byte) {
 }
 
 func TestClient(t *testing.T) {
-    fmt.Println("\nConnecting to daemon")
+    fmt.Println("\n=====================")
+    fmt.Println("Low Level Client Test")
+    fmt.Println("=====================\n")
+    fmt.Println("Connect to daemon")
+    fmt.Println("-----------------\n")
     client, err := PCSCDConnect()
     if err != nil { t.Error(err); return }
     defer client.Close()
+    fmt.Println("OK")
 
-    fmt.Println("\nEstablishing context")
+    fmt.Println("\nEstablish Context")
+    fmt.Println("-----------------\n")
     context, err := client.EstablishContext()
     if err != nil { t.Error(err); return }
     defer client.ReleaseContext(context)
+    fmt.Println("OK")
 
-    fmt.Println("\nListing readers\n")
+    fmt.Println("\nList Readers")
+    fmt.Println("------------\n")
     var selectedReader *ReaderInfo = nil
     readers, err := client.ListReaders()
     if err != nil { t.Error(err); return }
@@ -48,27 +56,31 @@ func TestClient(t *testing.T) {
         return
     }
 
-    fmt.Println("\nConnecting to card")
+    fmt.Println("Connect to card")
+    fmt.Println("---------------\n")
     card, protocol, err := client.CardConnect( context, selectedReader.Name())
     if err != nil { t.Error(err); return }
+    fmt.Println("OK")
 
-    fmt.Println("\nSelecting applet")
+    fmt.Println("\nSelect applet")
+    fmt.Println("-------------\n")
     buffer := make([]byte, 258)
     printHex(cmdSelect)
     received, err := client.Transmit(card, protocol, cmdSelect, buffer)
     if err != nil { t.Error(err); return }
     printHex(buffer[:received])
 
-    fmt.Println("\nSending CMD 10")
+    fmt.Println("\nSend CMD 10")
+    fmt.Println("-----------\n")
     printHex(cmd10)
     received, err = client.Transmit(card, protocol, cmd10, buffer)
     if err != nil { t.Error(err); return }
     printHex(buffer[:received])
     fmt.Printf("Quoth the Applet, \"%s\"\n", string(buffer[:received-2]))
 
-    fmt.Println("\nDisconnecting from card")
+    fmt.Println("\nDisconnect from card")
+    fmt.Println("--------------------\n")
     err = client.CardDisconnect(card)
     if err != nil { t.Error(err); return }
-
-    fmt.Println("")
+    fmt.Println("OK")
 }
