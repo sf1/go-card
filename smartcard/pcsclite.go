@@ -40,10 +40,10 @@ type PCSCLiteCard struct {
     context uint32
     cardID int32
     protocol uint32
-    atr []byte
+    atr ATR
 }
 
-func (c *PCSCLiteCard) ATR() []byte {
+func (c *PCSCLiteCard) ATR() ATR {
     return c.atr
 }
 
