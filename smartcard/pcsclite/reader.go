@@ -1,8 +1,7 @@
 package pcsclite
 
 type Reader struct {
-    context *Context
-    info *ReaderInfo
+    info ReaderInfo
 }
 
 func (r *Reader) Name() string {
@@ -10,18 +9,26 @@ func (r *Reader) Name() string {
 }
 
 func (r *Reader) IsCardPresent() bool {
-    //r.context.client.SyncReaderStates()
     return r.info.IsCardPresent()
 }
 
 func (r *Reader) Connect() (*Card, error) {
-    cardID, protocol, err := r.context.client.CardConnect(
-        r.context.ctxID, r.info.Name())
+    client, ctx, err := r.establishContext()
+    if err != nil { return nil, err }
+    cardID, protocol, err := client.CardConnect(ctx, r.info.Name())
     if err != nil { return nil, err }
     return &Card{
-        r.context,
+        client,
+        ctx,
         cardID,
         protocol,
         r.info.CardAtr[:r.info.CardAtrLength],
     }, nil
+}
+
+func (r *Reader) establishContext() (*PCSCDClient, uint32, error) {
+    client, err := PCSCDConnect()
+    if err != nil { return nil, 0, err }
+    ctx, err := client.EstablishContext()
+    return client, ctx, nil
 }
