@@ -27,7 +27,7 @@ func TestClient(t *testing.T) {
     fmt.Println("=====================\n")
     fmt.Println("Connect to daemon")
     fmt.Println("-----------------\n")
-    client, err := PCSCDConnect()
+    client, err := PCSCLiteConnect()
     if err != nil { t.Error(err); return }
     defer client.Close()
     fmt.Println("OK")

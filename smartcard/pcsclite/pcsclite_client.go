@@ -122,15 +122,15 @@ func (ri *ReaderInfo) String() string {
 
 type ReaderStateArray [PCSCLITE_MAX_READERS_CONTEXTS]ReaderInfo
 
-type PCSCDClient struct {
+type PCSCLiteClient struct {
     connection net.Conn
     readerStates ReaderStateArray
     readerCount uint32
 }
 
-func PCSCDConnect() (*PCSCDClient, error) {
+func PCSCLiteConnect() (*PCSCLiteClient, error) {
     var err error
-    client := &PCSCDClient{}
+    client := &PCSCLiteClient{}
     client.connection, err = net.Dial("unix","/var/run/pcscd/pcscd.comm")
     if err != nil { return nil, errors.New("Can't connect to PCSCD") }
     version := versionStruct{PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR, 0}
@@ -143,18 +143,18 @@ func PCSCDConnect() (*PCSCDClient, error) {
     return client, nil
 }
 
-func (client *PCSCDClient) Close() {
+func (client *PCSCLiteClient) Close() {
     client.connection.Close()
 }
 
-func (client *PCSCDClient) SendHeader(command uint32, msgLen uint32) error {
+func (client *PCSCLiteClient) SendHeader(command uint32, msgLen uint32) error {
     header := rxHeader{msgLen, command}
     headerPtr := (*[unsafe.Sizeof(header)]byte)(unsafe.Pointer(&header))
     _, err := client.connection.Write(headerPtr[:])
     return err
 }
 
-func (client *PCSCDClient) ExchangeMessage(command uint32, msg []byte) error {
+func (client *PCSCLiteClient) ExchangeMessage(command uint32, msg []byte) error {
     err := client.SendHeader(command, uint32(len(msg)))
     if err != nil { return err }
     _, err = client.connection.Write(msg)
@@ -163,15 +163,15 @@ func (client *PCSCDClient) ExchangeMessage(command uint32, msg []byte) error {
     return err
 }
 
-func (client *PCSCDClient) Read(data []byte) (int, error) {
+func (client *PCSCLiteClient) Read(data []byte) (int, error) {
     return client.connection.Read(data)
 }
 
-func (client *PCSCDClient) Write(data []byte) (int, error) {
+func (client *PCSCLiteClient) Write(data []byte) (int, error) {
     return client.connection.Write(data)
 }
 
-func (client *PCSCDClient) EstablishContext() (uint32, error) {
+func (client *PCSCLiteClient) EstablishContext() (uint32, error) {
     estruct := establishStruct{CARD_SCOPE_SYSTEM, 0, 0}
     ptr := (*[unsafe.Sizeof(estruct)]byte)(unsafe.Pointer(&estruct))
     err := client.ExchangeMessage(SCARD_ESTABLISH_CONTEXT, ptr[:])
@@ -182,13 +182,13 @@ func (client *PCSCDClient) EstablishContext() (uint32, error) {
     return estruct.context, nil
 }
 
-func (client *PCSCDClient) ReleaseContext(context uint32) error {
+func (client *PCSCLiteClient) ReleaseContext(context uint32) error {
     rstruct := releaseStruct{context, 0}
     ptr := (*[unsafe.Sizeof(rstruct)]byte)(unsafe.Pointer(&rstruct))
     return client.ExchangeMessage(SCARD_RELEASE_CONTEXT, ptr[:])
 }
 
-func (client *PCSCDClient) SyncReaderStates() (
+func (client *PCSCLiteClient) SyncReaderStates() (
     uint32, error) {
     var count uint32
     ptr := (*[unsafe.Sizeof(client.readerStates)]byte)(
@@ -206,7 +206,7 @@ func (client *PCSCDClient) SyncReaderStates() (
     return count, nil
 }
 
-func (client *PCSCDClient) ListReaders() ([]*ReaderInfo, error) {
+func (client *PCSCLiteClient) ListReaders() ([]*ReaderInfo, error) {
     client.SyncReaderStates()
     readers := make([]*ReaderInfo, client.readerCount)
     for i := uint32(0); i < client.readerCount; i++ {
@@ -215,7 +215,7 @@ func (client *PCSCDClient) ListReaders() ([]*ReaderInfo, error) {
     return readers, nil
 }
 
-func (client *PCSCDClient) CardConnect(context uint32, readerName string) (
+func (client *PCSCLiteClient) CardConnect(context uint32, readerName string) (
     int32, uint32, error) {
     cstruct := connectStruct{}
     cstruct.context = context
@@ -236,7 +236,7 @@ func (client *PCSCDClient) CardConnect(context uint32, readerName string) (
     return cstruct.card, cstruct.activeProtocol, nil
 }
 
-func (client *PCSCDClient) CardDisconnect(card int32) error {
+func (client *PCSCLiteClient) CardDisconnect(card int32) error {
     dstruct := disconnectStruct{
         card,
         SCARD_RESET_CARD,
@@ -251,7 +251,7 @@ func (client *PCSCDClient) CardDisconnect(card int32) error {
     return nil
 }
 
-func (client *PCSCDClient) Transmit(card int32, protocol uint32,
+func (client *PCSCLiteClient) Transmit(card int32, protocol uint32,
     sendBuffer []byte, recvBuffer []byte) (uint32, error) {
     tstruct := transmitStruct{}
     tstruct.card = card
@@ -278,7 +278,7 @@ func (client *PCSCDClient) Transmit(card int32, protocol uint32,
     return tstruct.recvLength, nil
 }
 
-func (client *PCSCDClient) WaitReaderStateChange() error {
+func (client *PCSCLiteClient) WaitReaderStateChange() error {
     wrstruct := waitReaderStateChangeStruct{ uint32(60000), 0 }
     ptr := (*[unsafe.Sizeof(wrstruct)]byte)(unsafe.Pointer(&wrstruct))
     err := client.ExchangeMessage(CMD_WAIT_READER_STATE_CHANGE, ptr[:])
