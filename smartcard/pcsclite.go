@@ -1,4 +1,6 @@
-package pcsclite
+// +build !windows
+
+package smartcard
 
 type PCSCLiteReader struct {
     info ReaderInfo

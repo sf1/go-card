@@ -1,4 +1,4 @@
-package pcsclite
+package smartcard
 
 type Reader interface{
     Name() string

@@ -1,25 +1,12 @@
-package pcsclite
+// +build !windows
+
+package smartcard
 
 import (
     "fmt"
     "testing"
 )
 
-var cmdSelect = []byte{
-    0x00, 0xA4, 0x04, 0x00, 0x08,
-    0x90, 0x72, 0x5A, 0x9E, 0x3B, 0x10, 0x70, 0xAA,
-}
-
-var cmd10 = []byte{
-    0x00, 0x10, 0x00, 0x00, 0x0B,
-}
-
-func printHex(buffer []byte) {
-    for _, b := range buffer {
-        fmt.Printf("%02x", b)
-    }
-    fmt.Println("")
-}
 
 func TestClient(t *testing.T) {
     fmt.Println("\n=====================")
@@ -65,15 +52,15 @@ func TestClient(t *testing.T) {
     fmt.Println("\nSelect applet")
     fmt.Println("-------------\n")
     buffer := make([]byte, 258)
-    printHex(cmdSelect)
-    received, err := client.Transmit(card, protocol, cmdSelect, buffer)
+    printHex(CMD_SELECT)
+    received, err := client.Transmit(card, protocol, CMD_SELECT, buffer)
     if err != nil { t.Error(err); return }
     printHex(buffer[:received])
 
     fmt.Println("\nSend CMD 10")
     fmt.Println("-----------\n")
-    printHex(cmd10)
-    received, err = client.Transmit(card, protocol, cmd10, buffer)
+    printHex(CMD_10)
+    received, err = client.Transmit(card, protocol, CMD_10, buffer)
     if err != nil { t.Error(err); return }
     printHex(buffer[:received])
     fmt.Printf("Quoth the Applet, \"%s\"\n", string(buffer[:received-2]))

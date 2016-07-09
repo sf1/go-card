@@ -1,4 +1,6 @@
-package pcsclite
+// +build !windows
+
+package smartcard
 
 import (
     "net"

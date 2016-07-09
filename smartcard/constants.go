@@ -1,4 +1,4 @@
-package pcsclite
+package smartcard
 
 const (
     // Protocol version
