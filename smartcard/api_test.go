@@ -21,6 +21,33 @@ func printHex(buffer []byte) {
     fmt.Println("")
 }
 
+func TestEstablishReleaseContext(t *testing.T) {
+    fmt.Println("\n==============================")
+    fmt.Println("Test establish/release Context")
+    fmt.Println("==============================\n")
+    ctx, err := EstablishContext()
+    if err != nil { t.Error(err); return }
+    err = ctx.Release()
+    if err != nil { t.Error(err); return }
+    fmt.Println("OK")
+}
+
+func TestListReaders(t *testing.T) {
+    fmt.Println("\n=================")
+    fmt.Println("Test list readers")
+    fmt.Println("=================\n")
+    ctx, err := EstablishContext()
+    if err != nil { t.Error(err); return }
+    defer ctx.Release()
+    readers, err := ctx.ListReaders()
+    if err != nil { t.Error(err); return }
+    for _, reader := range readers {
+        fmt.Println(reader.Name())
+        fmt.Printf("- Card present: %t\n\n", reader.IsCardPresent())
+    }
+}
+
+/*
 func TestHighLevelAPI(t *testing.T) {
     fmt.Println("\n===================")
     fmt.Println("High Level API Test")
@@ -62,3 +89,4 @@ func TestHighLevelAPI(t *testing.T) {
     printHex(response)
     fmt.Printf("Quoth the Applet, \"%s\"\n", string(response[:len(response)-2]))
 }
+*/

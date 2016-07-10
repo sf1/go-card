@@ -187,7 +187,12 @@ func (client *PCSCLiteClient) EstablishContext() (uint32, error) {
 func (client *PCSCLiteClient) ReleaseContext(context uint32) error {
     rstruct := releaseStruct{context, 0}
     ptr := (*[unsafe.Sizeof(rstruct)]byte)(unsafe.Pointer(&rstruct))
-    return client.ExchangeMessage(SCARD_RELEASE_CONTEXT, ptr[:])
+    err := client.ExchangeMessage(SCARD_RELEASE_CONTEXT, ptr[:])
+    if err != nil { return 0, err }
+    if rstruct.rv != SCARD_S_SUCCESS {
+        return 0, fmt.Errorf("Can't release context: %08x", rstruct.rv)
+    }
+    return nil
 }
 
 func (client *PCSCLiteClient) SyncReaderStates() (

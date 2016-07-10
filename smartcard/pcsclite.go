@@ -73,6 +73,7 @@ func (r *PCSCLiteReader) Name() string {
 }
 
 func (r *PCSCLiteReader) IsCardPresent() bool {
+    r.context.client.SyncReaderStates()
     return r.info.IsCardPresent()
 }
 
