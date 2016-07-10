@@ -9,9 +9,9 @@ import (
 
 
 func TestClient(t *testing.T) {
-    fmt.Println("\n=====================")
-    fmt.Println("Low Level Client Test")
-    fmt.Println("=====================\n")
+    fmt.Println("\n=================")
+    fmt.Println("PCSCD Client Test")
+    fmt.Println("=================\n")
     fmt.Println("Connect to daemon")
     fmt.Println("-----------------\n")
     client, err := PCSCLiteConnect()
