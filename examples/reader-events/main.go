@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "github.com/sf1/go-sc/smartcard"
+    "github.com/sf1/go-card/smartcard"
 )
 
 func printReaderStates(ctx smartcard.Context) {
