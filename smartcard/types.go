@@ -5,6 +5,13 @@ import (
     "bytes"
 )
 
+type Context interface {
+    Release() error
+    ListReaders() ([]Reader, error)
+    ListReadersWithCard() ([]Reader, error)
+    WaitForCardPresent() (Reader, error)
+}
+
 type Reader interface {
     Name() string
     IsCardPresent() bool

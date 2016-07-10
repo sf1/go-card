@@ -2,7 +2,69 @@
 
 package smartcard
 
+type PCSCLiteContext struct {
+    client *PCSCLiteClient
+    ctxID uint32
+}
+
+func EstablishContext() (Context, error) {
+    var err error
+    context := &PCSCLiteContext{}
+    context.client, err = PCSCLiteConnect()
+    if err != nil { return nil, err }
+    context.ctxID, err = context.client.EstablishContext()
+    return context, nil
+}
+
+func (ctx *PCSCLiteContext) Release() error {
+    return ctx.client.ReleaseContext(ctx.ctxID)
+}
+
+func (ctx *PCSCLiteContext) ListReaders() ([]Reader, error) {
+    return ctx.listReaders(false)
+}
+
+func (ctx *PCSCLiteContext) ListReadersWithCard() ([]Reader, error) {
+    return ctx.listReaders(true)
+}
+
+func (ctx *PCSCLiteContext) listReaders(withCard bool) ([]Reader, error) {
+    readerInfos, err := ctx.client.ListReaders()
+    if err != nil { return nil, err }
+    result := make([]Reader, 0, len(readerInfos))
+    for i := 0; i < len(readerInfos); i++ {
+        if withCard {
+            if readerInfos[i].IsCardPresent() {
+                result = append(result, &PCSCLiteReader{ctx, *readerInfos[i]})
+            }
+        } else {
+            result = append(result, &PCSCLiteReader{ctx, *readerInfos[i]})
+        }
+    }
+    return result, nil
+}
+
+func (ctx *PCSCLiteContext) WaitForCardPresent() (Reader, error) {
+    var reader *PCSCLiteReader
+    for reader == nil {
+        count, err := ctx.client.SyncReaderStates()
+        if err != nil { return nil, err}
+        for i := uint32(0); i < count; i++ {
+            if ctx.client.readerStates[i].IsCardPresent() {
+                reader = &PCSCLiteReader{ctx, ctx.client.readerStates[i]}
+                break
+            }
+        }
+        if reader != nil {
+            break
+        }
+        ctx.client.WaitReaderStateChange()
+    }
+    return reader, nil
+}
+
 type PCSCLiteReader struct {
+    context *PCSCLiteContext
     info ReaderInfo
 }
 
@@ -15,29 +77,19 @@ func (r *PCSCLiteReader) IsCardPresent() bool {
 }
 
 func (r *PCSCLiteReader) Connect() (Card, error) {
-    client, ctx, err := r.establishContext()
-    if err != nil { return nil, err }
-    cardID, protocol, err := client.CardConnect(ctx, r.info.Name())
+    cardID, protocol, err := r.context.client.CardConnect(
+        r.context.ctxID, r.info.Name())
     if err != nil { return nil, err }
     return &PCSCLiteCard{
-        client,
-        ctx,
+        r.context,
         cardID,
         protocol,
         r.info.CardAtr[:r.info.CardAtrLength],
     }, nil
 }
 
-func (r *PCSCLiteReader) establishContext() (*PCSCLiteClient, uint32, error) {
-    client, err := PCSCLiteConnect()
-    if err != nil { return nil, 0, err }
-    ctx, err := client.EstablishContext()
-    return client, ctx, nil
-}
-
 type PCSCLiteCard struct {
-    client *PCSCLiteClient
-    context uint32
+    context *PCSCLiteContext
     cardID int32
     protocol uint32
     atr ATR
@@ -49,66 +101,14 @@ func (c *PCSCLiteCard) ATR() ATR {
 
 func (c *PCSCLiteCard) Transmit(command []byte) ([]byte, error) {
     response := make([]byte, 258)
-    received, err := c.client.Transmit(c.cardID, c.protocol,
+    received, err := c.context.client.Transmit(c.cardID, c.protocol,
         command, response)
     if err != nil { return nil, err }
     return response[:received], nil
 }
 
 func (c *PCSCLiteCard) Disconnect() error {
-    err := c.client.CardDisconnect(c.cardID)
+    err := c.context.client.CardDisconnect(c.cardID)
     if err != nil { return err }
-    err = c.client.ReleaseContext(c.context)
-    if err != nil { return err }
-    c.client.Close()
     return nil
-}
-
-func ListReaders() ([]Reader, error) {
-    return listReaders(false)
-}
-
-func ListReadersWithCard() ([]Reader, error) {
-    return listReaders(true)
-}
-
-func listReaders(withCard bool) ([]Reader, error) {
-    client, err := PCSCLiteConnect()
-    if err != nil { return nil, err}
-    defer client.Close()
-    readerInfos, err := client.ListReaders()
-    if err != nil { return nil, err }
-    result := make([]Reader, 0, len(readerInfos))
-    for i := 0; i < len(readerInfos); i++ {
-        if withCard {
-            if readerInfos[i].IsCardPresent() {
-                result = append(result, &PCSCLiteReader{*readerInfos[i]})
-            }
-        } else {
-            result = append(result, &PCSCLiteReader{*readerInfos[i]})
-        }
-    }
-    return result, nil
-}
-
-func WaitForCardPresent() (Reader, error) {
-    var reader *PCSCLiteReader
-    client, err := PCSCLiteConnect()
-    if err != nil { return nil, err}
-    defer client.Close()
-    for reader == nil {
-        count, err := client.SyncReaderStates()
-        if err != nil { return nil, err}
-        for i := uint32(0); i < count; i++ {
-            if client.readerStates[i].IsCardPresent() {
-                reader = &PCSCLiteReader{client.readerStates[i]}
-                break
-            }
-        }
-        if reader != nil {
-            break
-        }
-        client.WaitReaderStateChange()
-    }
-    return reader, nil
 }

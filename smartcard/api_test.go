@@ -26,9 +26,16 @@ func TestHighLevelAPI(t *testing.T) {
     fmt.Println("High Level API Test")
     fmt.Println("===================\n")
 
+    fmt.Println("\nEstablish Context")
+    fmt.Println("-----------------\n")
+    ctx, err := EstablishContext()
+    if err != nil { t.Error(err); return }
+    defer ctx.Release()
+    fmt.Println("OK")
+
     fmt.Println("\nWait for card present")
     fmt.Println("---------------------\n")
-    reader, err := WaitForCardPresent()
+    reader, err := ctx.WaitForCardPresent()
     if err != nil { t.Error(err); return }
     fmt.Println("OK")
 
