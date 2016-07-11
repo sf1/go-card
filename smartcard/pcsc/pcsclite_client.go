@@ -208,7 +208,7 @@ func (client *PCSCLiteClient) Write(data []byte) (int, error) {
 }
 
 func (client *PCSCLiteClient) EstablishContext() (uint32, error) {
-    estruct := establishStruct{_CARD_SCOPE_SYSTEM, 0, 0}
+    estruct := establishStruct{CARD_SCOPE_SYSTEM, 0, 0}
     ptr := (*[unsafe.Sizeof(estruct)]byte)(unsafe.Pointer(&estruct))
     err := client.ExchangeMessage(_SCARD_ESTABLISH_CONTEXT, ptr[:])
     if err != nil { return 0, err }
