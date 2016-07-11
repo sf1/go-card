@@ -10,6 +10,36 @@ import (
     "fmt"
 )
 
+const (
+    // Protocol version
+    _PROTOCOL_VERSION_MAJOR = 4
+    _PROTOCOL_VERSION_MINOR = 3
+    // Commands
+    _SCARD_ESTABLISH_CONTEXT = 0x01
+    _SCARD_RELEASE_CONTEXT = 0x02
+    _SCARD_LIST_READERS = 0x03
+    _SCARD_CONNECT = 0x04
+    _SCARD_RECONNECT = 0x05
+    _SCARD_DISCONNECT = 0x06
+    _SCARD_BEGIN_TRANSACTION = 0x07
+    _SCARD_END_TRANSACTION = 0x08
+    _SCARD_TRANSMIT = 0x09
+    _SCARD_CONTROL = 0x0A
+    _SCARD_STATUS = 0x0B
+    _SCARD_GET_STATUS_CHANGE = 0x0C
+    _SCARD_CANCEL = 0x0D
+    _SCARD_CANCEL_TRANSACTION = 0x0E
+    _SCARD_GET_ATTRIB = 0x0F
+    _SCARD_SET_ATTRIB = 0x10
+    _CMD_VERSION = 0x11
+    _CMD_GET_READERS_STATE = 0x12
+    _CMD_WAIT_READER_STATE_CHANGE = 0x13
+    _CMD_STOP_WAITING_READER_STATE_CHANGE = 0x14
+    // Limits
+    _PCSCLITE_MAX_READERS_CONTEXTS = 16
+    _MAX_READERNAME = 128
+)
+
 type rxHeader struct {
     size uint32
     command uint32
@@ -80,7 +110,7 @@ func (ri *ReaderInfo) Name() string {
 }
 
 func (ri *ReaderInfo) IsCardPresent() bool {
-    present := uint32(_SCARD_POWERED | _SCARD_PRESENT)
+    present := uint32(SCARD_POWERED | SCARD_PRESENT)
     return (ri.ReaderState & present) == present
 }
 
@@ -90,25 +120,25 @@ func (ri *ReaderInfo) String() string {
     buffer.WriteString("\n")
     buffer.WriteString(fmt.Sprintf("- Event Counter:  %d\n", ri.EventCounter))
     buffer.WriteString(fmt.Sprintf("- Reader State:   %x (", ri.ReaderState))
-    if (ri.ReaderState & _SCARD_SPECIFIC) != 0 {
+    if (ri.ReaderState & SCARD_SPECIFIC) != 0 {
         buffer.WriteString(" SPECFIC")
     }
-    if (ri.ReaderState & _SCARD_NEGOTIABLE) != 0 {
+    if (ri.ReaderState & SCARD_NEGOTIABLE) != 0 {
         buffer.WriteString(" NEGOTIABLE")
     }
-    if (ri.ReaderState & _SCARD_POWERED) != 0 {
+    if (ri.ReaderState & SCARD_POWERED) != 0 {
         buffer.WriteString(" POWERED")
     }
-    if (ri.ReaderState & _SCARD_SWALLOWED) != 0 {
+    if (ri.ReaderState & SCARD_SWALLOWED) != 0 {
         buffer.WriteString(" SWALLOWED")
     }
-    if (ri.ReaderState & _SCARD_PRESENT) != 0 {
+    if (ri.ReaderState & SCARD_PRESENT) != 0 {
         buffer.WriteString(" PRESENT")
     }
-    if (ri.ReaderState & _SCARD_ABSENT) != 0 {
+    if (ri.ReaderState & SCARD_ABSENT) != 0 {
         buffer.WriteString(" ABSENT")
     }
-    if (ri.ReaderState & _SCARD_UNKNOWN) != 0 {
+    if (ri.ReaderState & SCARD_UNKNOWN) != 0 {
         buffer.WriteString(" UNKOWN")
     }
     buffer.WriteString(" )\n")
@@ -139,7 +169,7 @@ func PCSCLiteConnect() (*PCSCLiteClient, error) {
     ptr1 := (*[unsafe.Sizeof(version)]byte)(unsafe.Pointer(&version))
     err = client.ExchangeMessage(_CMD_VERSION, ptr1[:])
     if err != nil { return nil, err }
-    if version.rv != _SCARD_S_SUCCESS {
+    if version.rv != SCARD_S_SUCCESS {
         return nil, errors.New("Protocol version mismatch")
     }
     return client, nil
@@ -182,7 +212,7 @@ func (client *PCSCLiteClient) EstablishContext() (uint32, error) {
     ptr := (*[unsafe.Sizeof(estruct)]byte)(unsafe.Pointer(&estruct))
     err := client.ExchangeMessage(_SCARD_ESTABLISH_CONTEXT, ptr[:])
     if err != nil { return 0, err }
-    if estruct.rv != _SCARD_S_SUCCESS {
+    if estruct.rv != SCARD_S_SUCCESS {
         return 0, fmt.Errorf("Can't establish context: %08x", estruct.rv)
     }
     return estruct.context, nil
@@ -193,7 +223,7 @@ func (client *PCSCLiteClient) ReleaseContext(context uint32) error {
     ptr := (*[unsafe.Sizeof(rstruct)]byte)(unsafe.Pointer(&rstruct))
     err := client.ExchangeMessage(_SCARD_RELEASE_CONTEXT, ptr[:])
     if err != nil { return err }
-    if rstruct.rv != _SCARD_S_SUCCESS {
+    if rstruct.rv != SCARD_S_SUCCESS {
         return fmt.Errorf("Can't release context: %08x", rstruct.rv)
     }
     return nil
@@ -236,12 +266,12 @@ func (client *PCSCLiteClient) CardConnect(context uint32, readerName string) (
     for i := 0; i < limit; i++ {
         cstruct.readerName[i] = readerBytes[i]
     }
-    cstruct.shareMode = _SCARD_SHARE_SHARED
-    cstruct.preferredProtocols = _SCARD_PROTOCOL_ANY
+    cstruct.shareMode = SCARD_SHARE_SHARED
+    cstruct.preferredProtocols = SCARD_PROTOCOL_ANY
     ptr := (*[unsafe.Sizeof(cstruct)]byte)(unsafe.Pointer(&cstruct))
     err := client.ExchangeMessage(_SCARD_CONNECT, ptr[:])
     if err != nil { return 0, 0, err }
-    if cstruct.rv != _SCARD_S_SUCCESS {
+    if cstruct.rv != SCARD_S_SUCCESS {
         return 0, 0, fmt.Errorf("Cant connect to card: %08x", cstruct.rv)
     }
     return cstruct.card, cstruct.activeProtocol, nil
@@ -250,13 +280,13 @@ func (client *PCSCLiteClient) CardConnect(context uint32, readerName string) (
 func (client *PCSCLiteClient) CardDisconnect(card int32) error {
     dstruct := disconnectStruct{
         card,
-        _SCARD_RESET_CARD,
+        SCARD_RESET_CARD,
         0,
     }
     ptr := (*[unsafe.Sizeof(dstruct)]byte)(unsafe.Pointer(&dstruct))
     err := client.ExchangeMessage(_SCARD_DISCONNECT, ptr[:])
     if err != nil { return err }
-    if dstruct.rv != _SCARD_S_SUCCESS {
+    if dstruct.rv != SCARD_S_SUCCESS {
         return fmt.Errorf("Cant disconnect from card: %08x", dstruct.rv)
     }
     return nil
@@ -270,7 +300,7 @@ func (client *PCSCLiteClient) Transmit(card int32, protocol uint32,
     tstruct.sendPciProtocol = protocol
     tstruct.sendPciLength = 8
     tstruct.recvLength = uint32(len(recvBuffer))
-    tstruct.recvPciProtocol = _SCARD_PROTOCOL_ANY
+    tstruct.recvPciProtocol = SCARD_PROTOCOL_ANY
     tstruct.recvPciLength = 8
     tsBytes := (*[unsafe.Sizeof(tstruct)]byte)(unsafe.Pointer(&tstruct))[:]
     err := client.SendHeader(_SCARD_TRANSMIT, uint32(len(tsBytes)))
@@ -281,7 +311,7 @@ func (client *PCSCLiteClient) Transmit(card int32, protocol uint32,
     if err != nil { return 0, err }
     _, err = client.connection.Read(tsBytes)
     if err != nil { return 0, err }
-    if tstruct.rv != _SCARD_S_SUCCESS {
+    if tstruct.rv != SCARD_S_SUCCESS {
         return 0, fmt.Errorf("Transmission failed: %08x", tstruct.rv)
     }
     _, err = client.connection.Read(recvBuffer)
@@ -294,11 +324,11 @@ func (client *PCSCLiteClient) WaitReaderStateChange() error {
     ptr := (*[unsafe.Sizeof(wrstruct)]byte)(unsafe.Pointer(&wrstruct))
     err := client.ExchangeMessage(_CMD_WAIT_READER_STATE_CHANGE, ptr[:])
     if err != nil { return err }
-    if wrstruct.rv == _SCARD_E_TIMEOUT {
+    if wrstruct.rv == SCARD_E_TIMEOUT {
         client.ExchangeMessage(_CMD_STOP_WAITING_READER_STATE_CHANGE, ptr[:])
         if err != nil { return err }
     }
-    if wrstruct.rv != _SCARD_S_SUCCESS {
+    if wrstruct.rv != SCARD_S_SUCCESS {
         return fmt.Errorf("Wait failed: %08x", wrstruct.rv)
     }
     return nil
