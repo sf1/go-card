@@ -2,56 +2,59 @@
 
 package smartcard
 
-type PCSCLiteContext struct {
-    client *PCSCLiteClient
+import "github.com/sf1/go-card/smartcard/pcsc"
+
+type Context struct {
+    client *pcsc.PCSCLiteClient
     ctxID uint32
 }
 
-func EstablishContext() (Context, error) {
+func EstablishContext() (*Context, error) {
     var err error
-    context := &PCSCLiteContext{}
-    context.client, err = PCSCLiteConnect()
+    context := &Context{}
+    context.client, err = pcsc.PCSCLiteConnect()
     if err != nil { return nil, err }
     context.ctxID, err = context.client.EstablishContext()
     return context, nil
 }
 
-func (ctx *PCSCLiteContext) Release() error {
+func (ctx *Context) Release() error {
     return ctx.client.ReleaseContext(ctx.ctxID)
 }
 
-func (ctx *PCSCLiteContext) ListReaders() ([]Reader, error) {
+func (ctx *Context) ListReaders() ([]*Reader, error) {
     return ctx.listReaders(false)
 }
 
-func (ctx *PCSCLiteContext) ListReadersWithCard() ([]Reader, error) {
+func (ctx *Context) ListReadersWithCard() ([]*Reader, error) {
     return ctx.listReaders(true)
 }
 
-func (ctx *PCSCLiteContext) listReaders(withCard bool) ([]Reader, error) {
+func (ctx *Context) listReaders(withCard bool) ([]*Reader, error) {
     readerInfos, err := ctx.client.ListReaders()
     if err != nil { return nil, err }
-    result := make([]Reader, 0, len(readerInfos))
+    result := make([]*Reader, 0, len(readerInfos))
     for i := 0; i < len(readerInfos); i++ {
         if withCard {
             if readerInfos[i].IsCardPresent() {
-                result = append(result, &PCSCLiteReader{ctx, *readerInfos[i]})
+                result = append(result, &Reader{ctx, *readerInfos[i]})
             }
         } else {
-            result = append(result, &PCSCLiteReader{ctx, *readerInfos[i]})
+            result = append(result, &Reader{ctx, *readerInfos[i]})
         }
     }
     return result, nil
 }
 
-func (ctx *PCSCLiteContext) WaitForCardPresent() (Reader, error) {
-    var reader *PCSCLiteReader
+func (ctx *Context) WaitForCardPresent() (*Reader, error) {
+    var reader *Reader
     for reader == nil {
         count, err := ctx.client.SyncReaderStates()
         if err != nil { return nil, err}
         for i := uint32(0); i < count; i++ {
-            if ctx.client.readerStates[i].IsCardPresent() {
-                reader = &PCSCLiteReader{ctx, ctx.client.readerStates[i]}
+            state := ctx.client.ReaderStates()[i]
+            if state.IsCardPresent() {
+                reader = &Reader{ctx, state}
                 break
             }
         }
@@ -63,25 +66,25 @@ func (ctx *PCSCLiteContext) WaitForCardPresent() (Reader, error) {
     return reader, nil
 }
 
-type PCSCLiteReader struct {
-    context *PCSCLiteContext
-    info ReaderInfo
+type Reader struct {
+    context *Context
+    info pcsc.ReaderInfo
 }
 
-func (r *PCSCLiteReader) Name() string {
+func (r *Reader) Name() string {
     return r.info.Name()
 }
 
-func (r *PCSCLiteReader) IsCardPresent() bool {
+func (r *Reader) IsCardPresent() bool {
     r.context.client.SyncReaderStates()
     return r.info.IsCardPresent()
 }
 
-func (r *PCSCLiteReader) Connect() (Card, error) {
+func (r *Reader) Connect() (*Card, error) {
     cardID, protocol, err := r.context.client.CardConnect(
         r.context.ctxID, r.info.Name())
     if err != nil { return nil, err }
-    return &PCSCLiteCard{
+    return &Card{
         r.context,
         cardID,
         protocol,
@@ -89,18 +92,18 @@ func (r *PCSCLiteReader) Connect() (Card, error) {
     }, nil
 }
 
-type PCSCLiteCard struct {
-    context *PCSCLiteContext
+type Card struct {
+    context *Context
     cardID int32
     protocol uint32
     atr ATR
 }
 
-func (c *PCSCLiteCard) ATR() ATR {
+func (c *Card) ATR() ATR {
     return c.atr
 }
 
-func (c *PCSCLiteCard) Transmit(command []byte) ([]byte, error) {
+func (c *Card) Transmit(command []byte) ([]byte, error) {
     response := make([]byte, 258)
     received, err := c.context.client.Transmit(c.cardID, c.protocol,
         command, response)
@@ -108,7 +111,7 @@ func (c *PCSCLiteCard) Transmit(command []byte) ([]byte, error) {
     return response[:received], nil
 }
 
-func (c *PCSCLiteCard) Disconnect() error {
+func (c *Card) Disconnect() error {
     err := c.context.client.CardDisconnect(c.cardID)
     if err != nil { return err }
     return nil

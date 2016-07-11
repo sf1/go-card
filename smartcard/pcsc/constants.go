@@ -1,4 +1,4 @@
-package smartcard
+package pcsc
 
 const (
     // Protocol version

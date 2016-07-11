@@ -1,6 +1,6 @@
 // +build windows
 
-package smartcard
+package pcsc
 
 import (
     "fmt"

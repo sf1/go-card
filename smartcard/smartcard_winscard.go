@@ -6,54 +6,54 @@ import (
     "fmt"
 )
 
-type WinscardContext struct {
+type Context struct {
     ctxID uintptr
     winscard *WinscardWrapper
 }
 
-func EstablishContext() (Context, error) {
+func EstablishContext() (*Context, error) {
     winscard, err := Winscard()
     if err != nil {
         return nil, err
     }
     ctxID, err := winscard.EstablishContext()
     if err != nil { return nil, err }
-    return &WinscardContext{ctxID, winscard}, nil
+    return &Context{ctxID, winscard}, nil
 }
 
 
-func (ctx *WinscardContext) Release() error {
+func (ctx *Context) Release() error {
     return ctx.winscard.ReleaseContext(ctx.ctxID)
 }
 
-func (ctx *WinscardContext) ListReaders() ([]Reader, error) {
+func (ctx *Context) ListReaders() ([]*Reader, error) {
     readerNames, err := ctx.winscard.ListReaders(ctx.ctxID)
     if err != nil { return nil, err }
-    readers := make([]Reader, len(readerNames))
+    readers := make([]*Reader, len(readerNames))
     for i := 0; i < len(readerNames); i++ {
-        readers[i] = &WinscardReader{ctx, readerNames[i]}
+        readers[i] = &Reader{ctx, readerNames[i]}
     }
     return readers, nil
 }
 
-func (ctx *WinscardContext) ListReadersWithCard() ([]Reader, error) {
+func (ctx *Context) ListReadersWithCard() ([]*Reader, error) {
     states, err := ctx.winscard.GetStatusChangeAll(
         ctx.ctxID, _SCARD_INFINITE, _SCARD_STATE_UNAWARE)
     if err != nil { return nil, err }
-    readers := make([]Reader, 0, len(states))
+    readers := make([]*Reader, 0, len(states))
     for _, state := range states {
         if state.EventState & _SCARD_STATE_MUTE != 0 {
             continue
         }
         if state.EventState & _SCARD_STATE_PRESENT != 0 {
-            readers = append(readers, &WinscardReader{ctx, state.Reader})
+            readers = append(readers, &Reader{ctx, state.Reader})
         }
     }
     return readers, nil
 }
 
-func (ctx *WinscardContext) WaitForCardPresent() (Reader, error) {
-    var reader *WinscardReader = nil
+func (ctx *Context) WaitForCardPresent() (*Reader, error) {
+    var reader *Reader = nil
     states, err := ctx.winscard.GetStatusChangeAll(
         ctx.ctxID, _SCARD_INFINITE, _SCARD_STATE_UNAWARE)
     if err != nil { return nil, err }
@@ -64,7 +64,7 @@ func (ctx *WinscardContext) WaitForCardPresent() (Reader, error) {
                 continue
             }
             if state.EventState & _SCARD_STATE_PRESENT != 0 {
-                reader = &WinscardReader{ctx, state.Reader}
+                reader = &Reader{ctx, state.Reader}
                 break
             }
         }
@@ -76,16 +76,16 @@ func (ctx *WinscardContext) WaitForCardPresent() (Reader, error) {
     return reader, nil
 }
 
-type WinscardReader struct {
-    context *WinscardContext
+type Reader struct {
+    context *Context
     name string
 }
 
-func (r *WinscardReader) Name() string {
+func (r *Reader) Name() string {
     return r.name
 }
 
-func (r *WinscardReader) IsCardPresent() bool {
+func (r *Reader) IsCardPresent() bool {
     states := make([]ReaderState, 1)
     states[0].Reader = r.name
     states[0].CurrentState = _SCARD_STATE_UNAWARE
@@ -101,7 +101,7 @@ func (r *WinscardReader) IsCardPresent() bool {
     return states[0].EventState & _SCARD_STATE_PRESENT != 0
 }
 
-func (r *WinscardReader) Connect() (Card, error) {
+func (r *Reader) Connect() (*Card, error) {
     var pci uintptr
     cardID, protocol, err := r.context.winscard.CardConnect(
         r.context.ctxID, r.name)
@@ -114,23 +114,23 @@ func (r *WinscardReader) Connect() (Card, error) {
         default:
             return nil, fmt.Errorf("Unknown protocol: %08x", protocol)
     }
-    return &WinscardCard{r.context, cardID, pci, nil}, nil
+    return &Card{r.context, cardID, pci, nil}, nil
 }
 
-type WinscardCard struct {
-    context *WinscardContext
+type Card struct {
+    context *Context
     cardID uintptr
     sendPCI uintptr
     atr ATR
 }
 
-func (c *WinscardCard) Disconnect() error {
+func (c *Card) Disconnect() error {
     err := c.context.winscard.CardDisconnect(c.cardID)
     if err != nil { return err }
     return nil
 }
 
-func (c *WinscardCard) ATR() ATR {
+func (c *Card) ATR() ATR {
     var err error
     if c.atr != nil { return c.atr }
     c.atr, err = c.context.winscard.GetAttrib(c.cardID, _SCARD_ATTR_ATR_STRING)
@@ -138,7 +138,7 @@ func (c *WinscardCard) ATR() ATR {
     return c.atr
 }
 
-func (c *WinscardCard) Transmit(command []byte) ([]byte, error) {
+func (c *Card) Transmit(command []byte) ([]byte, error) {
     response := make([]byte, 258)
     received, err := c.context.winscard.Transmit(c.cardID, c.sendPCI,
         command, response)

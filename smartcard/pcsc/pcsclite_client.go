@@ -1,6 +1,6 @@
 // +build !windows
 
-package smartcard
+package pcsc
 
 import (
     "net"
@@ -143,6 +143,10 @@ func PCSCLiteConnect() (*PCSCLiteClient, error) {
         return nil, errors.New("Protocol version mismatch")
     }
     return client, nil
+}
+
+func (client* PCSCLiteClient) ReaderStates() ReaderStateArray {
+    return client.readerStates
 }
 
 func (client *PCSCLiteClient) Close() {

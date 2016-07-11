@@ -1,12 +1,27 @@
 // +build !windows
 
-package smartcard
+package pcsc
 
 import (
     "fmt"
     "testing"
 )
 
+var CMD_SELECT = []byte{
+    0x00, 0xA4, 0x04, 0x00, 0x08,
+    0x90, 0x72, 0x5A, 0x9E, 0x3B, 0x10, 0x70, 0xAA,
+}
+
+var CMD_10 = []byte{
+    0x00, 0x10, 0x00, 0x00, 0x0B,
+}
+
+func printHex(buffer []byte) {
+    for _, b := range buffer {
+        fmt.Printf("%02x", b)
+    }
+    fmt.Println("")
+}
 
 func TestClient(t *testing.T) {
     fmt.Println("\n=================")
