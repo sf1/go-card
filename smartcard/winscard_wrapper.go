@@ -35,6 +35,7 @@ type WinscardWrapper struct {
     cardDisconnect *syscall.LazyProc
     transmit *syscall.LazyProc
     getStatusChange *syscall.LazyProc
+    getAttrib *syscall.LazyProc
     t0PCI uintptr
     t1PCI uintptr
 }
@@ -57,6 +58,7 @@ func Winscard() (*WinscardWrapper, error) {
     winscard.cardDisconnect = dll.NewProc("SCardDisconnect")
     winscard.transmit = dll.NewProc("SCardTransmit")
     winscard.getStatusChange = dll.NewProc("SCardGetStatusChangeA")
+    winscard.getAttrib = dll.NewProc("SCardGetAttrib")
     t0 := dll.NewProc("g_rgSCardT0Pci")
     t1 := dll.NewProc("g_rgSCardT1Pci")
     if t0.Find() != nil || t1.Find() != nil {
@@ -201,4 +203,25 @@ func (ww *WinscardWrapper) Transmit(card uintptr, sendPCI uintptr,
             return 0, fmt.Errorf("Transmission failed: %08x", rv)
         }
         return received, nil
+}
+
+func (ww WinscardWrapper) GetAttrib(card uintptr, attr uint32) ([]byte, error) {
+    var size uintptr
+    rv, _, _ := ww.getAttrib.Call(
+        card, uintptr(attr), 0,
+        uintptr(unsafe.Pointer(&size)),
+    )
+    if rv != _SCARD_S_SUCCESS {
+        return nil, fmt.Errorf("Can't get attribute : %08x", rv)
+    }
+    buffer := make([]byte, size)
+    rv, _, _ = ww.getAttrib.Call(
+        card, uintptr(attr),
+        uintptr(unsafe.Pointer(&buffer[0])),
+        uintptr(unsafe.Pointer(&size)),
+    )
+    if rv != _SCARD_S_SUCCESS {
+        return nil, fmt.Errorf("Can't get attribute : %08x", rv)
+    }
+    return buffer[:size], nil
 }

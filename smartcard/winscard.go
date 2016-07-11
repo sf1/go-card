@@ -103,7 +103,8 @@ func (r *WinscardReader) IsCardPresent() bool {
 
 func (r *WinscardReader) Connect() (Card, error) {
     var pci uintptr
-    cardID, protocol, err := r.context.winscard.CardConnect(r.context.ctxID, r.name)
+    cardID, protocol, err := r.context.winscard.CardConnect(
+        r.context.ctxID, r.name)
     if err != nil { return nil, err }
     switch(protocol) {
         case _SCARD_PROTOCOL_T0:
@@ -113,13 +114,14 @@ func (r *WinscardReader) Connect() (Card, error) {
         default:
             return nil, fmt.Errorf("Unknown protocol: %08x", protocol)
     }
-    return &WinscardCard{r.context, cardID, pci}, nil
+    return &WinscardCard{r.context, cardID, pci, nil}, nil
 }
 
 type WinscardCard struct {
     context *WinscardContext
     cardID uintptr
     sendPCI uintptr
+    atr ATR
 }
 
 func (c *WinscardCard) Disconnect() error {
@@ -129,7 +131,11 @@ func (c *WinscardCard) Disconnect() error {
 }
 
 func (c *WinscardCard) ATR() ATR {
-    return nil
+    var err error
+    if c.atr != nil { return c.atr }
+    c.atr, err = c.context.winscard.GetAttrib(c.cardID, _SCARD_ATTR_ATR_STRING)
+    if err != nil { return nil }
+    return c.atr
 }
 
 func (c *WinscardCard) Transmit(command []byte) ([]byte, error) {

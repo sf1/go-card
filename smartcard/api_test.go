@@ -99,7 +99,9 @@ func TestCardCommunication(t *testing.T) {
     fmt.Println("---------------\n")
     card, err := reader.Connect()
     if err != nil { t.Error(err); return }
-    fmt.Println("OK\n")
+    fmt.Print("ATR: ")
+    printHex(card.ATR())
+    fmt.Println("")
 
     fmt.Println("Select applet")
     fmt.Println("-------------\n")
