@@ -128,10 +128,9 @@ func (ww *WinscardWrapper) ListReaders(ctx uintptr) ([]string, error) {
 
 func (ww *WinscardWrapper) GetStatusChange(ctx uintptr, timeout uint32,
     states []ReaderState) error {
-    var buffer bytes.Buffer
     _states := make([]readerState, len(states))
     for i := 0; i < len(states); i++ {
-        buffer.Reset()
+        var buffer bytes.Buffer
         buffer.WriteString(states[i].Reader)
         buffer.WriteByte(0)
         _states[i].reader = uintptr(unsafe.Pointer(&buffer.Bytes()[0]))
