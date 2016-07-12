@@ -148,7 +148,8 @@ func (ri *ReaderInfo) String() string {
     for y := uint32(0); y < ri.CardAtrLength; y++ {
         buffer.WriteString(fmt.Sprintf("%02x", ri.CardAtr[y]))
     }
-    buffer.WriteString(fmt.Sprintf("\n- Card Protocol:  %08x\n", ri.CardProtocol))
+    buffer.WriteString(fmt.Sprintf("\n- Card Protocol:  %08x\n",
+        ri.CardProtocol))
     return buffer.String()
 }
 
@@ -165,7 +166,9 @@ func PCSCLiteConnect() (*PCSCLiteClient, error) {
     client := &PCSCLiteClient{}
     client.connection, err = net.Dial("unix","/var/run/pcscd/pcscd.comm")
     if err != nil { return nil, errors.New("Can't connect to PCSCD") }
-    version := versionStruct{_PROTOCOL_VERSION_MAJOR, _PROTOCOL_VERSION_MINOR, 0}
+    version := versionStruct{
+        _PROTOCOL_VERSION_MAJOR, _PROTOCOL_VERSION_MINOR, 0,
+    }
     ptr1 := (*[unsafe.Sizeof(version)]byte)(unsafe.Pointer(&version))
     err = client.ExchangeMessage(_CMD_VERSION, ptr1[:])
     if err != nil { return nil, err }
@@ -190,8 +193,8 @@ func (client *PCSCLiteClient) SendHeader(command uint32, msgLen uint32) error {
     return err
 }
 
-func (client *PCSCLiteClient) ExchangeMessage(command uint32, msg []byte) error {
-    err := client.SendHeader(command, uint32(len(msg)))
+func (client *PCSCLiteClient) ExchangeMessage(cmd uint32, msg []byte) error {
+    err := client.SendHeader(cmd, uint32(len(msg)))
     if err != nil { return err }
     _, err = client.connection.Write(msg)
     if err != nil { return err }
@@ -213,7 +216,9 @@ func (client *PCSCLiteClient) EstablishContext() (uint32, error) {
     err := client.ExchangeMessage(_SCARD_ESTABLISH_CONTEXT, ptr[:])
     if err != nil { return 0, err }
     if estruct.rv != SCARD_S_SUCCESS {
-        return 0, fmt.Errorf("Can't establish context: %08x", estruct.rv)
+        return 0, fmt.Errorf(
+            "Can't establish context: %s", errorString(estruct.rv),
+        )
     }
     return estruct.context, nil
 }
@@ -224,7 +229,7 @@ func (client *PCSCLiteClient) ReleaseContext(context uint32) error {
     err := client.ExchangeMessage(_SCARD_RELEASE_CONTEXT, ptr[:])
     if err != nil { return err }
     if rstruct.rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Can't release context: %08x", rstruct.rv)
+        return fmt.Errorf("Can't release context: %s", errorString(rstruct.rv))
     }
     return nil
 }
@@ -272,7 +277,8 @@ func (client *PCSCLiteClient) CardConnect(context uint32, readerName string) (
     err := client.ExchangeMessage(_SCARD_CONNECT, ptr[:])
     if err != nil { return 0, 0, err }
     if cstruct.rv != SCARD_S_SUCCESS {
-        return 0, 0, fmt.Errorf("Cant connect to card: %08x", cstruct.rv)
+        return 0, 0, fmt.Errorf("Cant connect to card: %s",
+            errorString(cstruct.rv))
     }
     return cstruct.card, cstruct.activeProtocol, nil
 }
@@ -287,7 +293,8 @@ func (client *PCSCLiteClient) CardDisconnect(card int32) error {
     err := client.ExchangeMessage(_SCARD_DISCONNECT, ptr[:])
     if err != nil { return err }
     if dstruct.rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Cant disconnect from card: %08x", dstruct.rv)
+        return fmt.Errorf("Cant disconnect from card: %s",
+            errorString(dstruct.rv))
     }
     return nil
 }
@@ -312,7 +319,7 @@ func (client *PCSCLiteClient) Transmit(card int32, protocol uint32,
     _, err = client.connection.Read(tsBytes)
     if err != nil { return 0, err }
     if tstruct.rv != SCARD_S_SUCCESS {
-        return 0, fmt.Errorf("Transmission failed: %08x", tstruct.rv)
+        return 0, fmt.Errorf("Transmission failed: %s", errorString(tstruct.rv))
     }
     _, err = client.connection.Read(recvBuffer)
     if err != nil { return 0, err }
@@ -329,7 +336,7 @@ func (client *PCSCLiteClient) WaitReaderStateChange() error {
         if err != nil { return err }
     }
     if wrstruct.rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Wait failed: %08x", wrstruct.rv)
+        return fmt.Errorf("Wait failed: %s", errorString(wrstruct.rv))
     }
     return nil
 }

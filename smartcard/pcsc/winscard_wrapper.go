@@ -89,7 +89,8 @@ func (ww *WinscardWrapper) EstablishContext() (uintptr, error) {
     rv, _, _ := ww.establishContext.Call(CARD_SCOPE_SYSTEM, uintptr(0),
         uintptr(0), uintptr(unsafe.Pointer(&ctx)))
     if rv != SCARD_S_SUCCESS {
-        return 0, fmt.Errorf("Can't establish context: %08x", rv)
+        return 0, fmt.Errorf("Can't establish context: %s",
+            errorString(uint32(rv)))
     }
     return ctx, nil
 }
@@ -97,7 +98,8 @@ func (ww *WinscardWrapper) EstablishContext() (uintptr, error) {
 func (ww *WinscardWrapper) ReleaseContext(ctx uintptr) error {
     rv, _, _ := ww.releaseContext.Call(uintptr(ctx))
     if rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Can't release context: %08x", rv)
+        return fmt.Errorf("Can't release context: %s",
+            errorString(uint32(rv)))
     }
     return nil
 }
@@ -107,14 +109,16 @@ func (ww *WinscardWrapper) ListReaders(ctx uintptr) ([]string, error) {
     rv, _, _ := ww.listReaders.Call(ctx, 0, 0,
         uintptr(unsafe.Pointer(&bufferSize)))
     if rv != SCARD_S_SUCCESS {
-        return nil, fmt.Errorf("Can't list readers: %08x", rv)
+        return nil, fmt.Errorf("Can't list readers: %s",
+            errorString(uint32(rv)))
     }
     buffer := make([]byte, bufferSize)
     rv, _, _ = ww.listReaders.Call(ctx, 0,
         uintptr(unsafe.Pointer(&buffer[0])),
         uintptr(unsafe.Pointer(&bufferSize)))
     if rv != SCARD_S_SUCCESS {
-        return nil, fmt.Errorf("Can't list readers: %08x", rv)
+        return nil, fmt.Errorf("Can't list readers: %s",
+            errorString(uint32(rv)))
     }
     readers := make([]string, 0, 3)
     n := bytes.IndexByte(buffer, 0)
@@ -139,7 +143,8 @@ func (ww *WinscardWrapper) GetStatusChange(ctx uintptr, timeout uint32,
     rv, _, _ := ww.getStatusChange.Call(ctx, uintptr(timeout),
         uintptr(unsafe.Pointer(&_states[0])), uintptr(len(_states)))
     if rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Get status change failed: %08x", rv)
+        return fmt.Errorf("Get status change failed: %s",
+            errorString(uint32(rv)))
     }
     for i := 0; i < len(states); i++ {
         states[i].UserData = _states[i].userData
@@ -175,7 +180,8 @@ func (ww *WinscardWrapper) CardConnect(ctx uintptr, reader string) (
         uintptr(unsafe.Pointer(&activeProtocol)),
     )
     if rv != SCARD_S_SUCCESS {
-        return 0, 0, fmt.Errorf("Can't connect to card: %08x", rv)
+        return 0, 0, fmt.Errorf("Can't connect to card: %s",
+            errorString(uint32(rv)))
     }
     return card, activeProtocol, nil
 }
@@ -183,7 +189,8 @@ func (ww *WinscardWrapper) CardConnect(ctx uintptr, reader string) (
 func (ww *WinscardWrapper) CardDisconnect(card uintptr) error {
     rv, _, _ := ww.cardDisconnect.Call(card, uintptr(SCARD_RESET_CARD))
     if rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Can't disconnect from card: %08x", rv)
+        return fmt.Errorf("Can't disconnect from card: %s",
+            errorString(uint32(rv)))
     }
     return nil
 }
@@ -199,7 +206,8 @@ func (ww *WinscardWrapper) Transmit(card uintptr, sendPCI uintptr,
 		uintptr(unsafe.Pointer(&recvBuffer[0])),
 		uintptr(unsafe.Pointer(&received)))
         if rv != SCARD_S_SUCCESS {
-            return 0, fmt.Errorf("Transmission failed: %08x", rv)
+            return 0, fmt.Errorf("Transmission failed: %s",
+                errorString(uint32(rv)))
         }
         return received, nil
 }
@@ -211,7 +219,8 @@ func (ww WinscardWrapper) GetAttrib(card uintptr, attr uint32) ([]byte, error) {
         uintptr(unsafe.Pointer(&size)),
     )
     if rv != SCARD_S_SUCCESS {
-        return nil, fmt.Errorf("Can't get attribute : %08x", rv)
+        return nil, fmt.Errorf("Can't get attribute : %s",
+            errorString(uint32(rv)))
     }
     buffer := make([]byte, size)
     rv, _, _ = ww.getAttrib.Call(
@@ -220,7 +229,8 @@ func (ww WinscardWrapper) GetAttrib(card uintptr, attr uint32) ([]byte, error) {
         uintptr(unsafe.Pointer(&size)),
     )
     if rv != SCARD_S_SUCCESS {
-        return nil, fmt.Errorf("Can't get attribute : %08x", rv)
+        return nil, fmt.Errorf("Can't get attribute : %s",
+            errorString(uint32(rv)))
     }
     return buffer[:size], nil
 }
