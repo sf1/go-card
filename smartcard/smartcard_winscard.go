@@ -7,11 +7,14 @@ import (
     "github.com/sf1/go-card/smartcard/pcsc"
 )
 
+// A smart card context is required to access readers and cards.
 type Context struct {
     ctxID uintptr
     winscard *pcsc.WinscardWrapper
 }
 
+// Establish smart card context.
+// This should be the first function to be called.
 func EstablishContext() (*Context, error) {
     winscard, err := pcsc.Winscard()
     if err != nil {
@@ -22,11 +25,12 @@ func EstablishContext() (*Context, error) {
     return &Context{ctxID, winscard}, nil
 }
 
-
+// Release resources associated with smart card context.
 func (ctx *Context) Release() error {
     return ctx.winscard.ReleaseContext(ctx.ctxID)
 }
 
+// List all smart card readers.
 func (ctx *Context) ListReaders() ([]*Reader, error) {
     readerNames, err := ctx.winscard.ListReaders(ctx.ctxID)
     if err != nil { return nil, err }
@@ -37,6 +41,7 @@ func (ctx *Context) ListReaders() ([]*Reader, error) {
     return readers, nil
 }
 
+// List smart card readers with inserted cards.
 func (ctx *Context) ListReadersWithCard() ([]*Reader, error) {
     states, err := ctx.winscard.GetStatusChangeAll(
         ctx.ctxID, pcsc.SCARD_INFINITE, pcsc.SCARD_STATE_UNAWARE)
@@ -53,6 +58,8 @@ func (ctx *Context) ListReadersWithCard() ([]*Reader, error) {
     return readers, nil
 }
 
+// Block until a smart card is inserted into any reader.
+// Returns immediately if card already present.
 func (ctx *Context) WaitForCardPresent() (*Reader, error) {
     var reader *Reader = nil
     states, err := ctx.winscard.GetStatusChangeAll(
@@ -77,15 +84,20 @@ func (ctx *Context) WaitForCardPresent() (*Reader, error) {
     return reader, nil
 }
 
+// Smart card reader. 
+// Note that physical card readers with slots for multiple cards are
+// represented by one Reader instance per slot.
 type Reader struct {
     context *Context
     name string
 }
 
+// Return name of card reader.
 func (r *Reader) Name() string {
     return r.name
 }
 
+// Check if card is present.
 func (r *Reader) IsCardPresent() bool {
     states := make([]pcsc.ReaderState, 1)
     states[0].Reader = r.name
@@ -102,6 +114,7 @@ func (r *Reader) IsCardPresent() bool {
     return states[0].EventState & pcsc.SCARD_STATE_PRESENT != 0
 }
 
+// Connect to card.
 func (r *Reader) Connect() (*Card, error) {
     var pci uintptr
     cardID, protocol, err := r.context.winscard.CardConnect(
@@ -118,6 +131,7 @@ func (r *Reader) Connect() (*Card, error) {
     return &Card{r.context, cardID, pci, nil}, nil
 }
 
+// Smart card.
 type Card struct {
     context *Context
     cardID uintptr
@@ -125,12 +139,14 @@ type Card struct {
     atr ATR
 }
 
+// Disconnect from card.
 func (c *Card) Disconnect() error {
     err := c.context.winscard.CardDisconnect(c.cardID)
     if err != nil { return err }
     return nil
 }
 
+// Return card ATR (answer to reset).
 func (c *Card) ATR() ATR {
     var err error
     if c.atr != nil { return c.atr }
@@ -139,6 +155,7 @@ func (c *Card) ATR() ATR {
     return c.atr
 }
 
+// Trasmit bytes to card and return response.
 func (c *Card) Transmit(command []byte) ([]byte, error) {
     response := make([]byte, 258)
     received, err := c.context.winscard.Transmit(c.cardID, c.sendPCI,

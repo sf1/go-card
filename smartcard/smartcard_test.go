@@ -5,22 +5,6 @@ import (
     "testing"
 )
 
-var CMD_SELECT = []byte{
-    0x00, 0xA4, 0x04, 0x00, 0x08,
-    0x90, 0x72, 0x5A, 0x9E, 0x3B, 0x10, 0x70, 0xAA,
-}
-
-var CMD_10 = []byte{
-    0x00, 0x10, 0x00, 0x00, 0x0B,
-}
-
-func printHex(buffer []byte) {
-    for _, b := range buffer {
-        fmt.Printf("%02x", b)
-    }
-    fmt.Println("")
-}
-
 func TestInfo(t *testing.T) {
     fmt.Println("\n===================")
     fmt.Println("High Level API Test")
@@ -99,24 +83,24 @@ func TestCardCommunication(t *testing.T) {
     fmt.Println("---------------\n")
     card, err := reader.Connect()
     if err != nil { t.Error(err); return }
-    fmt.Print("ATR: ")
-    printHex(card.ATR())
-    fmt.Println("")
+    fmt.Printf("ATR: %s\n\n", card.ATR())
 
     fmt.Println("Select applet")
     fmt.Println("-------------\n")
-    printHex(CMD_SELECT)
-    response, err := card.Transmit(CMD_SELECT)
+    cmd := SelectCommand(0x90, 0x72, 0x5A, 0x9E, 0x3B, 0x10, 0x70, 0xAA)
+    fmt.Printf(">> %s\n", cmd)
+    response, err := card.TransmitAPDU(cmd)
     if err != nil { t.Error(err); return }
-    printHex(response)
+    fmt.Printf("<< %s\n", response)
 
     fmt.Println("\nSend CMD 10")
     fmt.Println("-----------\n")
-    printHex(CMD_10)
-    response, err = card.Transmit(CMD_10)
+    cmd = Command2(0x00, 0x10, 0x00, 0x00, 0x0b)
+    fmt.Printf(">> %s\n", cmd)
+    response, err = card.TransmitAPDU(cmd)
     if err != nil { t.Error(err); return }
-    printHex(response)
-    fmt.Printf("Quoth the Applet, \"%s\"\n\n", string(response[:len(response)-2]))
+    fmt.Printf("<< %s\n", response)
+    fmt.Printf("\nQuoth the Applet, \"%s\"\n\n", string(response.Data))
 
     fmt.Println("Disconnect from card")
     fmt.Println("--------------------\n")
