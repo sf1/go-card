@@ -4,6 +4,7 @@ package smartcard
 
 import (
     "fmt"
+    "time"
     "github.com/sf1/go-card/smartcard/pcsc"
 )
 
@@ -61,10 +62,17 @@ func (ctx *Context) ListReadersWithCard() ([]*Reader, error) {
 // Block until a smart card is inserted into any reader.
 // Returns immediately if card already present.
 func (ctx *Context) WaitForCardPresent() (*Reader, error) {
+    var err error
     var reader *Reader = nil
-    states, err := ctx.winscard.GetStatusChangeAll(
-        ctx.ctxID, pcsc.SCARD_INFINITE, pcsc.SCARD_STATE_UNAWARE)
-    if err != nil { return nil, err }
+    var states []pcsc.ReaderState
+    for states == nil {
+        states, err = ctx.winscard.GetStatusChangeAll(
+            ctx.ctxID, pcsc.SCARD_INFINITE, pcsc.SCARD_STATE_UNAWARE)
+        if err != nil { return nil, err }
+        if states == nil {
+            time.Sleep(1*time.Second)
+        }
+    }
     for reader == nil {
         for _, state := range states {
             state.CurrentState = state.EventState
@@ -77,7 +85,9 @@ func (ctx *Context) WaitForCardPresent() (*Reader, error) {
             }
         }
         if reader == nil {
-            err = ctx.winscard.GetStatusChange(ctx.ctxID, pcsc.SCARD_INFINITE, states)
+            err = ctx.winscard.GetStatusChange(
+                ctx.ctxID, pcsc.SCARD_INFINITE, states,
+            )
             if err != nil { return nil, err }
         }
     }

@@ -106,9 +106,13 @@ func (ww *WinscardWrapper) ReleaseContext(ctx uintptr) error {
 
 func (ww *WinscardWrapper) ListReaders(ctx uintptr) ([]string, error) {
     var bufferSize uintptr
+    readers := make([]string, 0, 3)
     rv, _, _ := ww.listReaders.Call(ctx, 0, 0,
         uintptr(unsafe.Pointer(&bufferSize)))
     if rv != SCARD_S_SUCCESS {
+        if rv == SCARD_E_NO_READERS_AVAILABLE {
+            return readers, nil
+        }
         return nil, fmt.Errorf("Can't list readers: %s",
             errorString(uint32(rv)))
     }
@@ -120,7 +124,6 @@ func (ww *WinscardWrapper) ListReaders(ctx uintptr) ([]string, error) {
         return nil, fmt.Errorf("Can't list readers: %s",
             errorString(uint32(rv)))
     }
-    readers := make([]string, 0, 3)
     n := bytes.IndexByte(buffer, 0)
     for n != 0 {
         readers = append(readers, string(buffer[:n]))
@@ -159,6 +162,10 @@ func (ww *WinscardWrapper) GetStatusChangeAll(ctx uintptr, timeout uint32,
     currentState uint32) ([]ReaderState, error) {
     readerNames, err := ww.ListReaders(ctx)
     if err != nil { return nil, err }
+    count := len(readerNames)
+    if count == 0 {
+        return nil, nil
+    }
     states := make([]ReaderState, len(readerNames))
     for i := 0; i < len(readerNames); i++ {
         states[i].Reader = readerNames[i]
