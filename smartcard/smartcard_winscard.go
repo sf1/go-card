@@ -37,7 +37,7 @@ func (ctx *Context) ListReaders() ([]*Reader, error) {
     if err != nil { return nil, err }
     readers := make([]*Reader, len(readerNames))
     for i := 0; i < len(readerNames); i++ {
-        readers[i] = &Reader{ctx, readerNames[i]}
+        readers[i] = &Reader{context: ctx, name: readerNames[i]}
     }
     return readers, nil
 }
@@ -53,7 +53,7 @@ func (ctx *Context) ListReadersWithCard() ([]*Reader, error) {
             continue
         }
         if state.EventState & pcsc.SCARD_STATE_PRESENT != 0 {
-            readers = append(readers, &Reader{ctx, state.Reader})
+            readers = append(readers, &Reader{context: ctx, name: state.Reader})
         }
     }
     return readers, nil
@@ -80,7 +80,7 @@ func (ctx *Context) WaitForCardPresent() (*Reader, error) {
                 continue
             }
             if state.EventState & pcsc.SCARD_STATE_PRESENT != 0 {
-                reader = &Reader{ctx, state.Reader}
+                reader = &Reader{context: ctx, name: state.Reader}
                 break
             }
         }
@@ -138,7 +138,11 @@ func (r *Reader) Connect() (*Card, error) {
         default:
             return nil, fmt.Errorf("Unknown protocol: %08x", protocol)
     }
-    return &Card{r.context, cardID, pci, nil}, nil
+    return &Card{
+        context:r.context, 
+        cardID: cardID,
+        sendPCI: pci, 
+    }, nil
 }
 
 // Smart card.

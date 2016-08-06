@@ -43,10 +43,12 @@ func (ctx *Context) listReaders(withCard bool) ([]*Reader, error) {
     for i := 0; i < len(readerInfos); i++ {
         if withCard {
             if readerInfos[i].IsCardPresent() {
-                result = append(result, &Reader{ctx, *readerInfos[i]})
+                result = append(result, &Reader{
+                    context: ctx, info: *readerInfos[i]})
             }
         } else {
-            result = append(result, &Reader{ctx, *readerInfos[i]})
+            result = append(result, &Reader{
+                context: ctx, info: *readerInfos[i]})
         }
     }
     return result, nil
@@ -62,7 +64,7 @@ func (ctx *Context) WaitForCardPresent() (*Reader, error) {
         for i := uint32(0); i < count; i++ {
             state := ctx.client.ReaderStates()[i]
             if state.IsCardPresent() {
-                reader = &Reader{ctx, state}
+                reader = &Reader{context: ctx, info: state}
                 break
             }
         }
@@ -99,10 +101,10 @@ func (r *Reader) Connect() (*Card, error) {
         r.context.ctxID, r.info.Name())
     if err != nil { return nil, err }
     return &Card{
-        r.context,
-        cardID,
-        protocol,
-        r.info.CardAtr[:r.info.CardAtrLength],
+        context: r.context,
+        cardID: cardID,
+        protocol: protocol,
+        atr: r.info.CardAtr[:r.info.CardAtrLength],
     }, nil
 }
 

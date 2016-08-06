@@ -62,7 +62,7 @@ func Winscard() (*WinscardWrapper, error) {
     t0 := dll.NewProc("g_rgSCardT0Pci")
     t1 := dll.NewProc("g_rgSCardT1Pci")
     if t0.Find() != nil || t1.Find() != nil {
-        fmt.Errorf("PCI structures not found")
+        fmt.Errorf("pci structures not found")
     }
     winscard.t0PCI = t0.Addr()
     winscard.t1PCI = t1.Addr()
@@ -89,7 +89,7 @@ func (ww *WinscardWrapper) EstablishContext() (uintptr, error) {
     rv, _, _ := ww.establishContext.Call(CARD_SCOPE_SYSTEM, uintptr(0),
         uintptr(0), uintptr(unsafe.Pointer(&ctx)))
     if rv != SCARD_S_SUCCESS {
-        return 0, fmt.Errorf("Can't establish context: %s",
+        return 0, fmt.Errorf("can't establish context: %s",
             errorString(uint32(rv)))
     }
     return ctx, nil
@@ -98,7 +98,7 @@ func (ww *WinscardWrapper) EstablishContext() (uintptr, error) {
 func (ww *WinscardWrapper) ReleaseContext(ctx uintptr) error {
     rv, _, _ := ww.releaseContext.Call(uintptr(ctx))
     if rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Can't release context: %s",
+        return fmt.Errorf("can't release context: %s",
             errorString(uint32(rv)))
     }
     return nil
@@ -113,7 +113,7 @@ func (ww *WinscardWrapper) ListReaders(ctx uintptr) ([]string, error) {
         if rv == SCARD_E_NO_READERS_AVAILABLE {
             return readers, nil
         }
-        return nil, fmt.Errorf("Can't list readers: %s",
+        return nil, fmt.Errorf("can't list readers: %s",
             errorString(uint32(rv)))
     }
     buffer := make([]byte, bufferSize)
@@ -121,7 +121,7 @@ func (ww *WinscardWrapper) ListReaders(ctx uintptr) ([]string, error) {
         uintptr(unsafe.Pointer(&buffer[0])),
         uintptr(unsafe.Pointer(&bufferSize)))
     if rv != SCARD_S_SUCCESS {
-        return nil, fmt.Errorf("Can't list readers: %s",
+        return nil, fmt.Errorf("can't list readers: %s",
             errorString(uint32(rv)))
     }
     n := bytes.IndexByte(buffer, 0)
@@ -146,7 +146,7 @@ func (ww *WinscardWrapper) GetStatusChange(ctx uintptr, timeout uint32,
     rv, _, _ := ww.getStatusChange.Call(ctx, uintptr(timeout),
         uintptr(unsafe.Pointer(&_states[0])), uintptr(len(_states)))
     if rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Get status change failed: %s",
+        return fmt.Errorf("get status change failed: %s",
             errorString(uint32(rv)))
     }
     for i := 0; i < len(states); i++ {
@@ -187,7 +187,7 @@ func (ww *WinscardWrapper) CardConnect(ctx uintptr, reader string) (
         uintptr(unsafe.Pointer(&activeProtocol)),
     )
     if rv != SCARD_S_SUCCESS {
-        return 0, 0, fmt.Errorf("Can't connect to card: %s",
+        return 0, 0, fmt.Errorf("can't connect to card: %s",
             errorString(uint32(rv)))
     }
     return card, activeProtocol, nil
@@ -196,7 +196,7 @@ func (ww *WinscardWrapper) CardConnect(ctx uintptr, reader string) (
 func (ww *WinscardWrapper) CardDisconnect(card uintptr) error {
     rv, _, _ := ww.cardDisconnect.Call(card, uintptr(SCARD_RESET_CARD))
     if rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Can't disconnect from card: %s",
+        return fmt.Errorf("can't disconnect from card: %s",
             errorString(uint32(rv)))
     }
     return nil
@@ -213,7 +213,7 @@ func (ww *WinscardWrapper) Transmit(card uintptr, sendPCI uintptr,
 		uintptr(unsafe.Pointer(&recvBuffer[0])),
 		uintptr(unsafe.Pointer(&received)))
         if rv != SCARD_S_SUCCESS {
-            return 0, fmt.Errorf("Transmission failed: %s",
+            return 0, fmt.Errorf("transmission failed: %s",
                 errorString(uint32(rv)))
         }
         return received, nil
@@ -226,7 +226,7 @@ func (ww WinscardWrapper) GetAttrib(card uintptr, attr uint32) ([]byte, error) {
         uintptr(unsafe.Pointer(&size)),
     )
     if rv != SCARD_S_SUCCESS {
-        return nil, fmt.Errorf("Can't get attribute : %s",
+        return nil, fmt.Errorf("can't get attribute : %s",
             errorString(uint32(rv)))
     }
     buffer := make([]byte, size)
@@ -236,7 +236,7 @@ func (ww WinscardWrapper) GetAttrib(card uintptr, attr uint32) ([]byte, error) {
         uintptr(unsafe.Pointer(&size)),
     )
     if rv != SCARD_S_SUCCESS {
-        return nil, fmt.Errorf("Can't get attribute : %s",
+        return nil, fmt.Errorf("can't get attribute : %s",
             errorString(uint32(rv)))
     }
     return buffer[:size], nil

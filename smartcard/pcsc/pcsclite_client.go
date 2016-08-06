@@ -5,7 +5,6 @@ package pcsc
 import (
     "net"
     "unsafe"
-    "errors"
     "bytes"
     "fmt"
 )
@@ -165,7 +164,7 @@ func PCSCLiteConnect() (*PCSCLiteClient, error) {
     var err error
     client := &PCSCLiteClient{}
     client.connection, err = net.Dial("unix","/var/run/pcscd/pcscd.comm")
-    if err != nil { return nil, errors.New("Can't connect to PCSCD") }
+    if err != nil { return nil, fmt.Errorf("can't connect to PCSCD") }
     version := versionStruct{
         _PROTOCOL_VERSION_MAJOR, _PROTOCOL_VERSION_MINOR, 0,
     }
@@ -173,7 +172,7 @@ func PCSCLiteConnect() (*PCSCLiteClient, error) {
     err = client.ExchangeMessage(_CMD_VERSION, ptr1[:])
     if err != nil { return nil, err }
     if version.rv != SCARD_S_SUCCESS {
-        return nil, errors.New("Protocol version mismatch")
+        return nil, fmt.Errorf("protocol version mismatch")
     }
     return client, nil
 }
@@ -187,7 +186,7 @@ func (client *PCSCLiteClient) Close() {
 }
 
 func (client *PCSCLiteClient) SendHeader(command uint32, msgLen uint32) error {
-    header := rxHeader{msgLen, command}
+    header := rxHeader{size: msgLen, command: command}
     headerPtr := (*[unsafe.Sizeof(header)]byte)(unsafe.Pointer(&header))
     _, err := client.connection.Write(headerPtr[:])
     return err
@@ -211,25 +210,25 @@ func (client *PCSCLiteClient) Write(data []byte) (int, error) {
 }
 
 func (client *PCSCLiteClient) EstablishContext() (uint32, error) {
-    estruct := establishStruct{CARD_SCOPE_SYSTEM, 0, 0}
+    estruct := establishStruct{scope: CARD_SCOPE_SYSTEM}
     ptr := (*[unsafe.Sizeof(estruct)]byte)(unsafe.Pointer(&estruct))
     err := client.ExchangeMessage(_SCARD_ESTABLISH_CONTEXT, ptr[:])
     if err != nil { return 0, err }
     if estruct.rv != SCARD_S_SUCCESS {
         return 0, fmt.Errorf(
-            "Can't establish context: %s", errorString(estruct.rv),
+            "can't establish context: %s", errorString(estruct.rv),
         )
     }
     return estruct.context, nil
 }
 
 func (client *PCSCLiteClient) ReleaseContext(context uint32) error {
-    rstruct := releaseStruct{context, 0}
+    rstruct := releaseStruct{context: context}
     ptr := (*[unsafe.Sizeof(rstruct)]byte)(unsafe.Pointer(&rstruct))
     err := client.ExchangeMessage(_SCARD_RELEASE_CONTEXT, ptr[:])
     if err != nil { return err }
     if rstruct.rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Can't release context: %s", errorString(rstruct.rv))
+        return fmt.Errorf("can't release context: %s", errorString(rstruct.rv))
     }
     return nil
 }
@@ -263,8 +262,7 @@ func (client *PCSCLiteClient) ListReaders() ([]*ReaderInfo, error) {
 
 func (client *PCSCLiteClient) CardConnect(context uint32, readerName string) (
     int32, uint32, error) {
-    cstruct := connectStruct{}
-    cstruct.context = context
+    cstruct := connectStruct{context: context}
     readerBytes := ([]byte)(readerName)
     limit := len(readerBytes)
     if limit > _MAX_READERNAME { limit = _MAX_READERNAME }
@@ -277,7 +275,7 @@ func (client *PCSCLiteClient) CardConnect(context uint32, readerName string) (
     err := client.ExchangeMessage(_SCARD_CONNECT, ptr[:])
     if err != nil { return 0, 0, err }
     if cstruct.rv != SCARD_S_SUCCESS {
-        return 0, 0, fmt.Errorf("Cant connect to card: %s",
+        return 0, 0, fmt.Errorf("cant connect to card: %s",
             errorString(cstruct.rv))
     }
     return cstruct.card, cstruct.activeProtocol, nil
@@ -285,15 +283,14 @@ func (client *PCSCLiteClient) CardConnect(context uint32, readerName string) (
 
 func (client *PCSCLiteClient) CardDisconnect(card int32) error {
     dstruct := disconnectStruct{
-        card,
-        SCARD_RESET_CARD,
-        0,
+        card: card,
+        disposition: SCARD_RESET_CARD,
     }
     ptr := (*[unsafe.Sizeof(dstruct)]byte)(unsafe.Pointer(&dstruct))
     err := client.ExchangeMessage(_SCARD_DISCONNECT, ptr[:])
     if err != nil { return err }
     if dstruct.rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Cant disconnect from card: %s",
+        return fmt.Errorf("cant disconnect from card: %s",
             errorString(dstruct.rv))
     }
     return nil
@@ -301,14 +298,15 @@ func (client *PCSCLiteClient) CardDisconnect(card int32) error {
 
 func (client *PCSCLiteClient) Transmit(card int32, protocol uint32,
     sendBuffer []byte, recvBuffer []byte) (uint32, error) {
-    tstruct := transmitStruct{}
-    tstruct.card = card
-    tstruct.sendLength = uint32(len(sendBuffer))
-    tstruct.sendPciProtocol = protocol
-    tstruct.sendPciLength = 8
-    tstruct.recvLength = uint32(len(recvBuffer))
-    tstruct.recvPciProtocol = SCARD_PROTOCOL_ANY
-    tstruct.recvPciLength = 8
+    tstruct := transmitStruct{
+        card: card,
+        sendLength: uint32(len(sendBuffer)),
+        sendPciProtocol: protocol,
+        sendPciLength: 8,
+        recvLength: uint32(len(recvBuffer)),
+        recvPciProtocol: SCARD_PROTOCOL_ANY,
+        recvPciLength: 8,
+    }
     tsBytes := (*[unsafe.Sizeof(tstruct)]byte)(unsafe.Pointer(&tstruct))[:]
     err := client.SendHeader(_SCARD_TRANSMIT, uint32(len(tsBytes)))
     if err != nil { return 0, err }
@@ -319,7 +317,7 @@ func (client *PCSCLiteClient) Transmit(card int32, protocol uint32,
     _, err = client.connection.Read(tsBytes)
     if err != nil { return 0, err }
     if tstruct.rv != SCARD_S_SUCCESS {
-        return 0, fmt.Errorf("Transmission failed: %s", errorString(tstruct.rv))
+        return 0, fmt.Errorf("transmission failed: %s", errorString(tstruct.rv))
     }
     _, err = client.connection.Read(recvBuffer)
     if err != nil { return 0, err }
@@ -327,7 +325,7 @@ func (client *PCSCLiteClient) Transmit(card int32, protocol uint32,
 }
 
 func (client *PCSCLiteClient) WaitReaderStateChange() error {
-    wrstruct := waitReaderStateChangeStruct{ uint32(60000), 0 }
+    wrstruct := waitReaderStateChangeStruct{ timeOutMs: uint32(60000) }
     ptr := (*[unsafe.Sizeof(wrstruct)]byte)(unsafe.Pointer(&wrstruct))
     err := client.ExchangeMessage(_CMD_WAIT_READER_STATE_CHANGE, ptr[:])
     if err != nil { return err }
@@ -336,7 +334,7 @@ func (client *PCSCLiteClient) WaitReaderStateChange() error {
         if err != nil { return err }
     }
     if wrstruct.rv != SCARD_S_SUCCESS {
-        return fmt.Errorf("Wait failed: %s", errorString(wrstruct.rv))
+        return fmt.Errorf("wait failed: %s", errorString(wrstruct.rv))
     }
     return nil
 }
