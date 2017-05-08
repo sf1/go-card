@@ -1,5 +1,5 @@
 /*
-Package smartcard a portable high-level API for communicating with smart cards.
+Package smartcard implements a portable high-level API for communicating with smart cards.
 
 Example:
 
