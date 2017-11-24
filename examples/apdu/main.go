@@ -83,6 +83,25 @@ func runInteractive(card *smartcard.Card) error {
     return nil
 }
 
+func runScript(card *smartcard.Card, script string) error {
+    file, err := os.Open(script)
+    if err != nil {
+        return err
+    }
+    defer file.Close()
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+        fmt.Println("")
+        err := processCommand(card, scanner.Text(), true)
+        if err != nil {
+            fmt.Printf("error: %s\n", err)
+            continue
+        }
+    }
+    fmt.Println("")
+    return nil
+}
+
 func processCommand(card *smartcard.Card, command string, echoCmd bool) error {
     apdu := make([]byte, 0, 128)
     parts := strings.Split(command, " ")
@@ -114,9 +133,5 @@ func processCommand(card *smartcard.Card, command string, echoCmd bool) error {
         return err
     }
     fmt.Printf("<< %s\n", res)
-    return nil
-}
-
-func runScript(card *smartcard.Card, script string) error {
     return nil
 }
