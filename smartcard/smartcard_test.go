@@ -91,7 +91,7 @@ func TestCardCommunication(t *testing.T) {
     fmt.Printf(">> %s\n", cmd)
     response, err := card.TransmitAPDU(cmd)
     if err != nil { t.Error(err); return }
-    fmt.Printf("<< %s\n", response)
+    fmt.Printf("<< %s\n", response.String())
 
     fmt.Println("\nSend CMD 10")
     fmt.Println("-----------\n")
@@ -100,7 +100,7 @@ func TestCardCommunication(t *testing.T) {
     response, err = card.TransmitAPDU(cmd)
     if err != nil { t.Error(err); return }
     fmt.Printf("<< %s\n", response)
-    fmt.Printf("\nQuoth the Applet, \"%s\"\n\n", string(response.Data))
+    fmt.Printf("\nQuoth the Applet, \"%s\"\n\n", string(response.Data()))
 
     fmt.Println("Disconnect from card")
     fmt.Println("--------------------\n")
