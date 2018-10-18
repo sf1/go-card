@@ -165,6 +165,7 @@ func PCSCLiteConnect() (*PCSCLiteClient, error) {
     client := &PCSCLiteClient{}
     client.connection, err = net.Dial("unix","/var/run/pcscd/pcscd.comm")
     if err != nil { return nil, fmt.Errorf("can't connect to PCSCD") }
+    /*
     version := versionStruct{
         _PROTOCOL_VERSION_MAJOR, _PROTOCOL_VERSION_MINOR, 0,
     }
@@ -174,6 +175,7 @@ func PCSCLiteConnect() (*PCSCLiteClient, error) {
     if version.rv != SCARD_S_SUCCESS {
         return nil, fmt.Errorf("protocol version mismatch")
     }
+    */
     return client, nil
 }
 
