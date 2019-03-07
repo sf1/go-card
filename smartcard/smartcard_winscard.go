@@ -115,7 +115,6 @@ func (r *Reader) IsCardPresent() bool {
     err := r.context.winscard.GetStatusChange(r.context.ctxID,
         pcsc.SCARD_INFINITE, states)
     if err != nil {
-        fmt.Println(err)
         return false
     }
     if states[0].EventState & pcsc.SCARD_STATE_MUTE != 0 {
