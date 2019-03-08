@@ -123,6 +123,26 @@ func (r *Reader) IsCardPresent() bool {
     return states[0].EventState & pcsc.SCARD_STATE_PRESENT != 0
 }
 
+// Wait until card removed
+func (r *Reader) WaitUntilCardRemoved() {
+    states := make([]pcsc.ReaderState, 1)
+    for {
+        states[0].Reader = r.name
+        states[0].CurrentState = pcsc.SCARD_STATE_UNAWARE
+        err := r.context.winscard.GetStatusChange(r.context.ctxID,
+            pcsc.SCARD_INFINITE, states)
+        if err != nil {
+            return
+        }
+        if states[0].EventState & pcsc.SCARD_STATE_MUTE != 0 ||
+            states[0].EventState & pcsc.SCARD_STATE_PRESENT == 0 {
+                return
+        }
+        time.Sleep(500*time.Millisecond)
+    }
+}
+
+
 // Connect to card.
 func (r *Reader) Connect() (*Card, error) {
     var pci uintptr

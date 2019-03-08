@@ -9,11 +9,14 @@ func main() {
     ctx, err := smartcard.EstablishContext()
     if err != nil { panic(err) }
     defer ctx.Release()
-    fmt.Println("\nWaiting for card...")
+    fmt.Printf("\nWaiting for card...")
     reader, err := ctx.WaitForCardPresent()
     if err != nil { panic(err) }
     card, err := reader.Connect()
     if err != nil { panic(err) }
-    defer card.Disconnect()
-    fmt.Printf("\nATR: %s\n\n",card.ATR())
+    fmt.Printf("\n\nATR: %s\n\n",card.ATR())
+    card.Disconnect()
+    fmt.Printf("Please remove card");
+    reader.WaitUntilCardRemoved()
+    fmt.Printf("\n\n")
 }
