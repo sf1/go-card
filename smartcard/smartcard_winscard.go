@@ -65,15 +65,14 @@ func (ctx *Context) WaitForCardPresent() (*Reader, error) {
     var err error
     var reader *Reader = nil
     var states []pcsc.ReaderState
-    for states == nil {
+    for reader == nil {
         states, err = ctx.winscard.GetStatusChangeAll(
             ctx.ctxID, pcsc.SCARD_INFINITE, pcsc.SCARD_STATE_UNAWARE)
         if err != nil { return nil, err }
         if states == nil {
             time.Sleep(500*time.Millisecond)
+            continue
         }
-    }
-    for reader == nil {
         for _, state := range states {
             state.CurrentState = state.EventState
             if state.EventState & pcsc.SCARD_STATE_MUTE != 0 {
