@@ -70,7 +70,7 @@ func (ctx *Context) WaitForCardPresent() (*Reader, error) {
             ctx.ctxID, pcsc.SCARD_INFINITE, pcsc.SCARD_STATE_UNAWARE)
         if err != nil { return nil, err }
         if states == nil {
-            time.Sleep(1*time.Second)
+            time.Sleep(500*time.Millisecond)
         }
     }
     for reader == nil {
@@ -89,6 +89,7 @@ func (ctx *Context) WaitForCardPresent() (*Reader, error) {
                 ctx.ctxID, pcsc.SCARD_INFINITE, states,
             )
             if err != nil { return nil, err }
+            time.Sleep(500*time.Millisecond)
         }
     }
     return reader, nil
