@@ -2,7 +2,10 @@
 
 package smartcard
 
-import "github.com/sf1/go-card/smartcard/pcsc"
+import (
+    "time"
+    "github.com/sf1/go-card/smartcard/pcsc"
+)
 
 // A smart card context is required to access readers and cards.
 type Context struct {
@@ -37,18 +40,18 @@ func (ctx *Context) ListReadersWithCard() ([]*Reader, error) {
 }
 
 func (ctx *Context) listReaders(withCard bool) ([]*Reader, error) {
-    readerInfos, err := ctx.client.ListReaders()
+    readers, err := ctx.client.ListReaders()
     if err != nil { return nil, err }
-    result := make([]*Reader, 0, len(readerInfos))
-    for i := 0; i < len(readerInfos); i++ {
+    result := make([]*Reader, 0, len(readers))
+    for i := 0; i < len(readers); i++ {
         if withCard {
-            if readerInfos[i].IsCardPresent() {
+            if readers[i].IsCardPresent() {
                 result = append(result, &Reader{
-                    context: ctx, info: *readerInfos[i]})
+                    context: ctx, reader: *readers[i]})
             }
         } else {
             result = append(result, &Reader{
-                context: ctx, info: *readerInfos[i]})
+                context: ctx, reader: *readers[i]})
         }
     }
     return result, nil
@@ -59,19 +62,19 @@ func (ctx *Context) listReaders(withCard bool) ([]*Reader, error) {
 func (ctx *Context) WaitForCardPresent() (*Reader, error) {
     var reader *Reader
     for reader == nil {
-        count, err := ctx.client.SyncReaderStates()
+        count, err := ctx.client.SyncReaders()
         if err != nil { return nil, err}
         for i := uint32(0); i < count; i++ {
-            state := ctx.client.ReaderStates()[i]
-            if state.IsCardPresent() {
-                reader = &Reader{context: ctx, info: state}
+            r := ctx.client.Readers()[i]
+            if r.IsCardPresent() {
+                reader = &Reader{context: ctx, reader: r}
                 break
             }
         }
         if reader != nil {
             break
         }
-        ctx.client.WaitReaderStateChange()
+        time.Sleep(250*time.Millisecond)
     }
     return reader, nil
 }
@@ -81,30 +84,48 @@ func (ctx *Context) WaitForCardPresent() (*Reader, error) {
 // represented by one Reader instance per slot.
 type Reader struct {
     context *Context
-    info pcsc.ReaderInfo
+    reader pcsc.Reader
 }
 
 // Return name of card reader.
 func (r *Reader) Name() string {
-    return r.info.Name()
+    return r.reader.Name()
 }
 
 // Check if card is present.
 func (r *Reader) IsCardPresent() bool {
-    r.context.client.SyncReaderStates()
-    return r.info.IsCardPresent()
+    count, err := r.context.client.SyncReaders()
+    if err != nil {
+        return false
+    }
+    readers := r.context.client.Readers()
+    for i := uint32(0); i < count; i++ {
+        if r.Name() == readers[i].Name() {
+            r.reader = readers[i]
+            if r.reader.IsCardPresent() {
+                return true
+            }
+        }
+    }
+    return false
+}
+
+func (r *Reader) WaitUntilCardRemoved() {
+    for r.IsCardPresent() {
+        time.Sleep(250*time.Millisecond)
+    }
 }
 
 // Connect to card.
 func (r *Reader) Connect() (*Card, error) {
     cardID, protocol, err := r.context.client.CardConnect(
-        r.context.ctxID, r.info.Name())
+        r.context.ctxID, r.reader.Name())
     if err != nil { return nil, err }
     return &Card{
         context: r.context,
         cardID: cardID,
         protocol: protocol,
-        atr: r.info.CardAtr[:r.info.CardAtrLength],
+        atr: r.reader.CardAtr[:r.reader.CardAtrLength],
     }, nil
 }
 

@@ -32,8 +32,10 @@ const (
     _SCARD_SET_ATTRIB = 0x10
     _CMD_VERSION = 0x11
     _CMD_GET_READERS_STATE = 0x12
+    /*
     _CMD_WAIT_READER_STATE_CHANGE = 0x13
     _CMD_STOP_WAITING_READER_STATE_CHANGE = 0x14
+    */
     // Limits
     _PCSCLITE_MAX_READERS_CONTEXTS = 16
     _MAX_READERNAME = 128
@@ -93,7 +95,7 @@ type waitReaderStateChangeStruct struct {
     rv uint32
 }
 
-type ReaderInfo struct {
+type Reader struct {
     ReaderName [_MAX_READERNAME]byte
     EventCounter uint32
     ReaderState uint32
@@ -103,17 +105,17 @@ type ReaderInfo struct {
     CardProtocol uint32
 }
 
-func (ri *ReaderInfo) Name() string {
+func (ri *Reader) Name() string {
     n := bytes.IndexByte(ri.ReaderName[:], 0)
     return string(ri.ReaderName[:n])
 }
 
-func (ri *ReaderInfo) IsCardPresent() bool {
+func (ri *Reader) IsCardPresent() bool {
     present := uint32(SCARD_POWERED | SCARD_PRESENT)
     return (ri.ReaderState & present) == present
 }
 
-func (ri *ReaderInfo) String() string {
+func (ri *Reader) String() string {
     var buffer bytes.Buffer
     buffer.WriteString(ri.Name())
     buffer.WriteString("\n")
@@ -152,11 +154,11 @@ func (ri *ReaderInfo) String() string {
     return buffer.String()
 }
 
-type ReaderStateArray [_PCSCLITE_MAX_READERS_CONTEXTS]ReaderInfo
+type ReaderArray [_PCSCLITE_MAX_READERS_CONTEXTS]Reader
 
 type PCSCLiteClient struct {
     connection net.Conn
-    readerStates ReaderStateArray
+    readers ReaderArray
     readerCount uint32
 }
 
@@ -179,8 +181,8 @@ func PCSCLiteConnect() (*PCSCLiteClient, error) {
     return client, nil
 }
 
-func (client* PCSCLiteClient) ReaderStates() ReaderStateArray {
-    return client.readerStates
+func (client* PCSCLiteClient) Readers() ReaderArray {
+    return client.readers
 }
 
 func (client *PCSCLiteClient) Close() {
@@ -235,16 +237,16 @@ func (client *PCSCLiteClient) ReleaseContext(context uint32) error {
     return nil
 }
 
-func (client *PCSCLiteClient) SyncReaderStates() (
+func (client *PCSCLiteClient) SyncReaders() (
     uint32, error) {
     var count uint32
-    ptr := (*[unsafe.Sizeof(client.readerStates)]byte)(
-        unsafe.Pointer(&client.readerStates))
+    ptr := (*[unsafe.Sizeof(client.readers)]byte)(
+        unsafe.Pointer(&client.readers))
     err := client.SendHeader(_CMD_GET_READERS_STATE, 0)
     _, err = client.Read(ptr[:])
     if err != nil { return count, err }
     for count = 0; count < _PCSCLITE_MAX_READERS_CONTEXTS; count++ {
-        ri := client.readerStates[count]
+        ri := client.readers[count]
         if ri.ReaderName[0] == 0 {
             break
         }
@@ -253,11 +255,11 @@ func (client *PCSCLiteClient) SyncReaderStates() (
     return count, nil
 }
 
-func (client *PCSCLiteClient) ListReaders() ([]*ReaderInfo, error) {
-    client.SyncReaderStates()
-    readers := make([]*ReaderInfo, client.readerCount)
+func (client *PCSCLiteClient) ListReaders() ([]*Reader, error) {
+    client.SyncReaders()
+    readers := make([]*Reader, client.readerCount)
     for i := uint32(0); i < client.readerCount; i++ {
-        readers[i] = &client.readerStates[i]
+        readers[i] = &client.readers[i]
     }
     return readers, nil
 }
@@ -326,17 +328,25 @@ func (client *PCSCLiteClient) Transmit(card int32, protocol uint32,
     return tstruct.recvLength, nil
 }
 
+/*
 func (client *PCSCLiteClient) WaitReaderStateChange() error {
     wrstruct := waitReaderStateChangeStruct{ timeOutMs: uint32(60000) }
     ptr := (*[unsafe.Sizeof(wrstruct)]byte)(unsafe.Pointer(&wrstruct))
     err := client.ExchangeMessage(_CMD_WAIT_READER_STATE_CHANGE, ptr[:])
-    if err != nil { return err }
+    if err != nil {
+        return err
+    }
     if wrstruct.rv == SCARD_E_TIMEOUT {
-        client.ExchangeMessage(_CMD_STOP_WAITING_READER_STATE_CHANGE, ptr[:])
-        if err != nil { return err }
+        err = client.ExchangeMessage(
+            _CMD_STOP_WAITING_READER_STATE_CHANGE, ptr[:],
+        )
+        if err != nil {
+            return err
+        }
     }
     if wrstruct.rv != SCARD_S_SUCCESS {
         return fmt.Errorf("wait failed: %s", errorString(wrstruct.rv))
     }
     return nil
 }
+*/
