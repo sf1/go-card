@@ -1,7 +1,13 @@
 Go Smart Card API
 =================
 
-High level API for smart card integration written in pure Go. On Linx and other Unix-like systems, this package talks directly to the PCSC-Lite daemon, and on Windows it accesses the smart card service via winscard.dll.
+High level API for smart card integration written in pure Go. On Linx and other
+Unix-like systems, this package talks directly to the PCSC-Lite daemon, and on
+Windows it accesses the smart card service via winscard.dll.
+
+**Note**: macOS isn't and won't be supported, because its modified PCSC-Lite
+variant can't be accessed without `cgo`. PCSC-Lite will most likely be (already
+is?) deprecated in favour of `CryptoTokenKit`.
 
 Prerequisites
 -------------
