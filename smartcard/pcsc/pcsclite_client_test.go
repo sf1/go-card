@@ -3,8 +3,8 @@
 package pcsc
 
 import (
-    "fmt"
-    "testing"
+	"fmt"
+	"testing"
 )
 
 var CMD_SELECT = []byte{
@@ -36,7 +36,7 @@ func TestClient(t *testing.T) {
 
     fmt.Println("\nEstablish Context")
     fmt.Printf("-----------------\n\n")
-    context, err := client.EstablishContext()
+    context, err := client.EstablishContext(CARD_SCOPE_SYSTEM)
     if err != nil { t.Error(err); return }
     defer client.ReleaseContext(context)
     fmt.Println("OK")

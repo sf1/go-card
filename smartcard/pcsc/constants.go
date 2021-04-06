@@ -2,6 +2,8 @@ package pcsc
 
 const (
     // Scope
+    CARD_SCOPE_USER = 0x0000
+    CARD_SCOPE_TERMINAL = 0x0001
     CARD_SCOPE_SYSTEM = 0x0002
     // Limits
     _MAX_ATR_SIZE = 33

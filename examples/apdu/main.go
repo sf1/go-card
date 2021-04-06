@@ -8,6 +8,7 @@ import (
     "encoding/hex"
     "strings"
     "github.com/sf1/go-card/smartcard"
+    "github.com/sf1/go-card/smartcard/pcsc"
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 
 func run(aid, script string) error {
     var reader *smartcard.Reader
-    ctx, err := smartcard.EstablishContext()
+    ctx, err := smartcard.EstablishContext(pcsc.CARD_SCOPE_SYSTEM)
     if err != nil {
         return err
     }

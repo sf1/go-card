@@ -37,7 +37,7 @@ Installation
 Usage
 -----
 
-    ctx, err := smartcard.EstablishContext()
+    ctx, err := smartcard.EstablishContext(pcsc.CARD_SCOPE_SYSTEM)
     // handle error, if any
     defer ctx.Release()
 

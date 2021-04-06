@@ -3,7 +3,7 @@ Package smartcard implements a portable high-level API for communicating with sm
 
 Example:
 
-    ctx, err := smartcard.EstablishContext()
+    ctx, err := smartcard.EstablishContext(pcsc.CARD_SCOPE_SYSTEM)
     // handle error, if any
     defer ctx.Release()
 
@@ -14,7 +14,7 @@ Example:
     // handle error, if any
     defer card.Disconnect()
 
-    fmt.Printf("Card ATR: %s\n", card.ATR()) 
+    fmt.Printf("Card ATR: %s\n", card.ATR())
     command := SelectCommand(0xa0, 0x00, 0x00, 0x00, 0x62, 0x03, 0x01, 0xc, 0x01, 0x01)
     response, err := card.TransmitAPDU(command)
     // handle error, if any
@@ -23,8 +23,8 @@ Example:
 package smartcard
 
 import (
-    "fmt"
-    "bytes"
+	"bytes"
+	"fmt"
 )
 
 type ATR []byte

@@ -16,12 +16,12 @@ type Context struct {
 
 // Establish smart card context.
 // This should be the first function to be called.
-func EstablishContext() (*Context, error) {
+func EstablishContext(scope uint32) (*Context, error) {
     winscard, err := pcsc.Winscard()
     if err != nil {
         return nil, err
     }
-    ctxID, err := winscard.EstablishContext()
+    ctxID, err := winscard.EstablishContext(scope)
     if err != nil { return nil, err }
     return &Context{ctxID, winscard}, nil
 }
