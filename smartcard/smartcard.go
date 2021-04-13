@@ -3,7 +3,7 @@ Package smartcard implements a portable high-level API for communicating with sm
 
 Example:
 
-    ctx, err := smartcard.EstablishContext(pcsc.CARD_SCOPE_SYSTEM)
+    ctx, err := smartcard.EstablishContext()
     // handle error, if any
     defer ctx.Release()
 
@@ -23,8 +23,16 @@ Example:
 package smartcard
 
 import (
-	"bytes"
-	"fmt"
+    "fmt"
+    "bytes"
+    "github.com/sf1/go-card/smartcard/pcsc"
+)
+
+const (
+    // Scope
+    SCOPE_USER = pcsc.CARD_SCOPE_USER
+    SCOPE_TERMINAL = pcsc.CARD_SCOPE_TERMINAL
+    SCOPE_SYSTEM = pcsc.CARD_SCOPE_SYSTEM
 )
 
 type ATR []byte

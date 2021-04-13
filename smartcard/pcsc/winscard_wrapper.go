@@ -84,9 +84,13 @@ func (ww *WinscardWrapper) stringToBytes(str string) []byte {
     return buffer.Bytes()
 }
 
-func (ww *WinscardWrapper) EstablishContext(scope uint32) (uintptr, error) {
+func (ww *WinscardWrapper) EstablishContext(scope ...uint32) (uintptr, error) {
     var ctx uintptr
-    rv, _, _ := ww.establishContext.Call(uintptr(scope), uintptr(0),
+    scp := uint32(CARD_SCOPE_SYSTEM)
+    if len(scope) > 0 {
+        scp = scope[0]
+    }
+    rv, _, _ := ww.establishContext.Call(uintptr(scp), uintptr(0),
         uintptr(0), uintptr(unsafe.Pointer(&ctx)))
     if rv != SCARD_S_SUCCESS {
         return 0, fmt.Errorf("can't establish context: %s",

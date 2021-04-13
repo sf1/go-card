@@ -3,7 +3,6 @@ package smartcard
 import (
     "fmt"
     "testing"
-    "github.com/sf1/go-card/smartcard/pcsc"
 )
 
 func TestInfo(t *testing.T) {
@@ -16,7 +15,7 @@ func TestEstablishReleaseUserContext(t *testing.T) {
     fmt.Println("------------------------------")
     fmt.Println("Test establish/release User Context")
     fmt.Printf("------------------------------\n\n")
-    ctx, err := EstablishContext(pcsc.CARD_SCOPE_USER)
+    ctx, err := EstablishContext(SCOPE_USER)
     if err != nil { t.Error(err); return }
     err = ctx.Release()
     if err != nil { t.Error(err); return }
@@ -27,7 +26,7 @@ func TestEstablishReleaseSystemContext(t *testing.T) {
     fmt.Println("------------------------------")
     fmt.Println("Test establish/release System Context")
     fmt.Printf("------------------------------\n\n")
-    ctx, err := EstablishContext(pcsc.CARD_SCOPE_SYSTEM)
+    ctx, err := EstablishContext(SCOPE_SYSTEM)
     if err != nil { t.Error(err); return }
     err = ctx.Release()
     if err != nil { t.Error(err); return }
@@ -38,7 +37,7 @@ func TestListReaders(t *testing.T) {
     fmt.Println("-----------------")
     fmt.Println("Test list readers")
     fmt.Printf("-----------------\n\n")
-    ctx, err := EstablishContext(pcsc.CARD_SCOPE_SYSTEM)
+    ctx, err := EstablishContext()
     if err != nil { t.Error(err); return }
     defer ctx.Release()
     readers, err := ctx.ListReaders()
@@ -53,7 +52,7 @@ func TestListReadersWithCard(t *testing.T) {
     fmt.Println("---------------------------")
     fmt.Println("Test list readers with card")
     fmt.Printf("---------------------------\n\n")
-    ctx, err := EstablishContext(pcsc.CARD_SCOPE_SYSTEM)
+    ctx, err := EstablishContext()
     if err != nil { t.Error(err); return }
     defer ctx.Release()
     readers, err := ctx.ListReadersWithCard()
@@ -68,7 +67,7 @@ func TestWaitForCardPresentRemoved(t *testing.T) {
     fmt.Println("----------------------------------------------------")
     fmt.Println("Test wait for card present / wait until card removed")
     fmt.Printf("----------------------------------------------------\n\n")
-    ctx, err := EstablishContext(pcsc.CARD_SCOPE_SYSTEM)
+    ctx, err := EstablishContext()
     if err != nil { t.Error(err); return }
     defer ctx.Release()
     fmt.Printf("Insert card now...")
@@ -85,7 +84,7 @@ func TestCardCommunication(t *testing.T) {
     fmt.Println("-----------------------")
     fmt.Println("Test card communication")
     fmt.Printf("-----------------------\n\n")
-    ctx, err := EstablishContext(pcsc.CARD_SCOPE_SYSTEM)
+    ctx, err := EstablishContext()
     if err != nil { t.Error(err); return }
     defer ctx.Release()
     readers, err := ctx.ListReadersWithCard()

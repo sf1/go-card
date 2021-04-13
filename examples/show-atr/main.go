@@ -3,11 +3,10 @@ package main
 import (
     "fmt"
     "github.com/sf1/go-card/smartcard"
-    "github.com/sf1/go-card/smartcard/pcsc"
 )
 
 func main() {
-    ctx, err := smartcard.EstablishContext(pcsc.CARD_SCOPE_SYSTEM)
+    ctx, err := smartcard.EstablishContext()
     if err != nil { panic(err) }
     defer ctx.Release()
     fmt.Printf("\nWaiting for card...")

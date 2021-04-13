@@ -3,10 +3,10 @@
 package pcsc
 
 import (
-	"bytes"
-	"fmt"
-	"net"
-	"unsafe"
+    "net"
+    "unsafe"
+    "bytes"
+    "fmt"
 )
 
 const (
@@ -213,8 +213,12 @@ func (client *PCSCLiteClient) Write(data []byte) (int, error) {
     return client.connection.Write(data)
 }
 
-func (client *PCSCLiteClient) EstablishContext(scope uint32) (uint32, error) {
-    estruct := establishStruct{scope: scope}
+func (client *PCSCLiteClient) EstablishContext(scope ...uint32) (uint32, error) {
+    scp := uint32(CARD_SCOPE_SYSTEM)
+    if len(scope) > 0 {
+        scp = scope[0]
+    }
+    estruct := establishStruct{scope: scp}
     ptr := (*[unsafe.Sizeof(estruct)]byte)(unsafe.Pointer(&estruct))
     err := client.ExchangeMessage(_SCARD_ESTABLISH_CONTEXT, ptr[:])
     if err != nil { return 0, err }

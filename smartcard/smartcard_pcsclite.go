@@ -3,9 +3,8 @@
 package smartcard
 
 import (
-	"time"
-
-	"github.com/sf1/go-card/smartcard/pcsc"
+    "time"
+    "github.com/sf1/go-card/smartcard/pcsc"
 )
 
 // A smart card context is required to access readers and cards.
@@ -16,12 +15,16 @@ type Context struct {
 
 // Establish smart card context.
 // This should be the first function to be called.
-func EstablishContext(scope uint32) (*Context, error) {
+func EstablishContext(scope ...uint32) (*Context, error) {
     var err error
+    scp := uint32(SCOPE_SYSTEM)
+    if len(scope) > 0 {
+        scp = scope[0]
+    }
     context := &Context{}
     context.client, err = pcsc.PCSCLiteConnect()
     if err != nil { return nil, err }
-    context.ctxID, err = context.client.EstablishContext(scope)
+    context.ctxID, err = context.client.EstablishContext(scp)
     return context, nil
 }
 
