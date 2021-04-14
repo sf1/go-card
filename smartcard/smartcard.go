@@ -14,7 +14,7 @@ Example:
     // handle error, if any
     defer card.Disconnect()
 
-    fmt.Printf("Card ATR: %s\n", card.ATR()) 
+    fmt.Printf("Card ATR: %s\n", card.ATR())
     command := SelectCommand(0xa0, 0x00, 0x00, 0x00, 0x62, 0x03, 0x01, 0xc, 0x01, 0x01)
     response, err := card.TransmitAPDU(command)
     // handle error, if any
@@ -25,6 +25,14 @@ package smartcard
 import (
     "fmt"
     "bytes"
+    "github.com/sf1/go-card/smartcard/pcsc"
+)
+
+const (
+    // Scope
+    SCOPE_USER = pcsc.CARD_SCOPE_USER
+    SCOPE_TERMINAL = pcsc.CARD_SCOPE_TERMINAL
+    SCOPE_SYSTEM = pcsc.CARD_SCOPE_SYSTEM
 )
 
 type ATR []byte

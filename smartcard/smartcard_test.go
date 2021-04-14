@@ -11,11 +11,22 @@ func TestInfo(t *testing.T) {
     fmt.Printf("===================\n\n")
 }
 
-func TestEstablishReleaseContext(t *testing.T) {
+func TestEstablishReleaseUserContext(t *testing.T) {
     fmt.Println("------------------------------")
-    fmt.Println("Test establish/release Context")
+    fmt.Println("Test establish/release User Context")
     fmt.Printf("------------------------------\n\n")
-    ctx, err := EstablishContext()
+    ctx, err := EstablishContext(SCOPE_USER)
+    if err != nil { t.Error(err); return }
+    err = ctx.Release()
+    if err != nil { t.Error(err); return }
+    fmt.Printf("OK\n\n")
+}
+
+func TestEstablishReleaseSystemContext(t *testing.T) {
+    fmt.Println("------------------------------")
+    fmt.Println("Test establish/release System Context")
+    fmt.Printf("------------------------------\n\n")
+    ctx, err := EstablishContext(SCOPE_SYSTEM)
     if err != nil { t.Error(err); return }
     err = ctx.Release()
     if err != nil { t.Error(err); return }
