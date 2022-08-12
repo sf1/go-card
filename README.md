@@ -1,3 +1,5 @@
+** This repository is currently not maintained **
+
 Go Smart Card API
 =================
 
@@ -29,14 +31,14 @@ Arch Linux:
 
 None
 
-Installation
-------------
-
-    go get github.com/sf1/go-card/smartcard
-
 Usage
 -----
-
+    
+    import (
+        "fmt"
+        "github.com/sf1/go-card/smartcard"
+    )
+    
     ctx, err := smartcard.EstablishContext()
     // handle error, if any
     defer ctx.Release()
