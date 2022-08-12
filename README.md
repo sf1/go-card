@@ -1,4 +1,4 @@
-** This repository is currently not maintained **
+**This repository is currently not maintained**
 
 Go Smart Card API
 =================
